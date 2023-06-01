@@ -1,58 +1,63 @@
 ﻿#KO: Basic Tools for Working with Korean Text
-#Version 0.5.1
+#Version 0.5.2
 #Author: Darrell Larsen
 #
 #Distributed under GNU General Public License v3.0
+from constants import initials, medials, finals
 
+"""Section: Conversion between Korean syllables (as Unicode object 
+strings) and their component sounds.
 
-"""Section: Conversion between Korean syllables (as Unicode object strings) and their component sounds.
-
-For simple conversion of a Korean syllable to its ordinal value, or conversion from an ordinal value to a Korean syllable, use Python's built-in ord() and chr() functions.
+For simple conversion of a Korean syllable to its ordinal value, or 
+conversion from an ordinal value to a Korean syllable, use Python's
+built-in ord() and chr() functions.
 """
-# Key:(ord_value, Yale_romanization)
-initials = {'ㄱ':(0,'k'),'ㄲ':(1,'kk'),'ㄴ':(2,'n'),'ㄷ':(3,'t'),'ㄸ':(4,'tt'),
-'ㄹ':(5, 'l'),'ㅁ':(6,'m'),'ㅂ':(7,'p'),'ㅃ':(8,'pp'),'ㅅ':(9,'s'),'ㅆ':(10,'ss'),
-'ㅇ':(11,''),'ㅈ':(12,'c'),'ㅉ':(13,'cc'),'ㅊ':(14,'ch'),'ㅋ':(15,'kh'),'ㅌ':(16,'th'),
-'ㅍ':(17,'ph'),'ㅎ':(18,'h')}
-medials = {'ㅏ':(0,'a'),'ㅐ':(1,'ay'),'ㅑ':(2,'ya'),'ㅒ':(3,'yay'),'ㅓ':(4,'e'),
-'ㅔ':(5,'ey'),'ㅕ':(6,'ye'),'ㅖ':(7,'yey'),'ㅗ':(8,'o'),'ㅘ':(9,'wa'),'ㅙ':(10,'way'),
-'ㅚ':(11,'oy'), 'ㅛ':(12,'yo'),'ㅜ':(13,'wu'),'ㅝ':(14,'we'),'ㅞ':(15,'wey'),'ㅟ':(16,'wi'),
-'ㅠ':(17,'yu'),'ㅡ':(18,'u'),'ㅢ':(19,'uy'),'ㅣ':(20,'i')}
-finals = {'':(0,''),'ㄱ':(1,'k'),'ㄲ':(2,'kk'),'ㄳ':(3,'ks'),'ㄴ':(4,'n'),
-'ㄵ':(5,'nc'),'ㄶ':(6,'nh'),'ㄷ':(7,'t'),'ㄹ':(8,'l'),'ㄺ':(9,'lk'),'ㄻ':(10,'lm'),
-'ㄼ':(11,'lp'),'ㄽ':(12,'ls'),'ㄾ':(13,'lth'),'ㄻ':(14,'lm'),'ㅀ':(15,'lh'),'ㅁ':(16,'m'),
-'ㅂ':(17,'p'),'ㅄ':(18,'ps'),'ㅅ':(19,'s'),'ㅆ':(20,'ss'),'ㅇ':(21,'ng'),'ㅈ':(22,'c'),
-'ㅊ':(23,'ch'),'ㅋ':(24,'kh'),'ㅌ':(25,'th'),'ㅍ':(26,'ph'),'ㅎ':(27,'h')}
 
-"""Yale Patterns - Unnecessary
-Yale_initial_letters = {'ㄱ':'k','ㄲ':'kk','ㄴ':'n','ㄷ':'t','ㄸ':'tt','ㄹ':'l','ㅁ':'m',
-'ㅂ':'p','ㅃ':'pp','ㅅ':'s','ㅆ':'ss','ㅇ':'','ㅈ':'c','ㅉ':'cc','ㅊ':'ch','ㅋ':'kh',
-'ㅌ':'th','ㅍ':'ph','ㅎ':'h'}
-Yale_medial_letters = {'ㅏ':'a','ㅐ':'ay','ㅑ':'ya','ㅒ':'yay','ㅓ':'e','ㅔ':'ey','ㅕ':'ye',
-'ㅖ':'yey','ㅗ':'o','ㅘ':'wa','ㅙ':'way','ㅚ':'oy','ㅛ':'yo','ㅜ':'wu','ㅝ':'we','ㅞ':'wey',
-'ㅟ':'wi','ㅠ':'yu','ㅡ':'u','ㅢ':'uy','ㅣ':'i'}
-Yale_final_letters = {'':'','ㄱ':'k','ㄲ':'kk','ㄳ':'ks','ㄴ':'n','ㄵ':'nc','ㄶ':'nh',
-'ㄷ':'t','ㄹ':'l','ㄺ':'lk','ㄻ':'lm','ㄼ':'lp','ㄽ':'ls','ㄾ':'lth','ㄻ':'lm','ㅀ':'lh',
-'ㅁ':'m','ㅂ':'p','ㅄ':'ps','ㅅ':'s','ㅆ':'ss','ㅇ':'ng','ㅈ':'c','ㅊ':'ch','ㅋ':'kh',
-'ㅌ':'th','ㅍ':'ph','ㅎ':'h'}
-
-"""
+# TODO: implement exceptions throughout
 
 def _get_split_values(a):
-    """get_split_values(str) -> tuple (int, int, int).
+    """
+    Convert a one-character Korean syllable 3-tuple of dictionary
+    look-up values
 
-    Split a one-character syllable input up into letters. Returns a tuple containing the 
-    conversion values for the letters (initial letter, medial letter, final letter)"""
-    
+    Args:
+        a (str): a one-character Korean syllable input
+
+    Returns:
+        tuple(int, int, int): tuple of look-up values of the initial,
+            medial, and final letters of the syllable
+
+    Example:
+        '닭' --> (3, 0, 9)
+    """
+   
+    # Get the Unicode value of the input string
     value_a = ord(a)
+
+    # Convert value_a into the look-up values of the letters it 
+    # represents
     fin = ((value_a-44032) % 588) % 28
     mid = (((value_a - 44032) % 588) - fin) / 28
     init = ((value_a -44032) - mid*28 - fin) / 588
+
     return (int(init), int(mid), int(fin))
 
-#Given three Korean letters (onset, nucleus, coda), returns a tuple containing their conversion values.
+
 def _get_letters(value_set):
-    #Argument must be ordered set of 3 or 2 (if no final letter is present)
+    """
+    Convert a sequence of look-up values into a one-character syllable
+
+    Args:
+        value_set -- a list or tuple containing look-up values to the 
+            initial, medial and final Korean letters
+
+    Returns:
+        tuple(str, str, str): a 3-tuple of Korean letters
+    
+    Example:
+        (3, 0, 9) --> ('ㄷ', 'ㅏ', 'ㄺ')
+    """
+
     for key in initials:
         if initials[key][0] == value_set[0]:
             init = key
@@ -64,60 +69,260 @@ def _get_letters(value_set):
             fin = key
     return (init, mid, fin)
 
-#Find the ordinal value of a Korean syllable containing the three letters passed in as arguments.
-def _get_combined_value(a,b,c):
-    return initials[a][0]*588 + medials[b][0]*28 + finals[c][0] + 44032
+def _get_combined_value(initial, medial, final=None):
+    """
+    Convert a sequence of Korean letters into the Unicode value of the
+    syllable they constitute
+
+    Args:
+        initial (str): an initial Korean letter
+        medial (str): a medial Korean letter
+        final (str): a final Korean letter (default is None)
+
+    Returns:
+        int: Unicode value of the syllable comprised of init, med, fin
+
+    Example:
+        'ㄷ', 'ㅏ', 'ㄺ' --> 45805 
+    """
+
+    output = 44032 + initials[initial][0]*588 + medials[medial][0]*28
+    
+    if final:
+        output += finals[final][0]
+
+    return output
 
 def _values_to_letter(a):
+    """
+    Convert a sequence of Korean letters into their one-character
+    syllable representation
+
+    Arguments:
+        a (list): a sequence of two or three Korean letters
+
+    Returns:
+        str: a one-character syllable
+
+    Example:
+        ('ㄷ', 'ㅏ', 'ㄺ') --> '닭' 
+    """
+    #TODO: allow input of length 2
+
     return chr(_get_combined_value(a[0],a[1],a[2]))
    
 def _combine_value_list(a):
+    """
+    Convert a list of look-up values into a one-character syllable
+
+    Args:
+        a (list): a sequence of look-up values
+
+    Returns:
+        str: one-character syllable
+
+    Example:
+        (3, 0, 9) --> '닭'
+    """
+
     return _values_to_letter(_get_letters(a))
 
-#Given three ordered conversion values, return a Korean syllable.
-def combine(a,b,c):
-    return chr(_get_combined_value(a,b,c))
 
-def split(a):
-    return _get_letters(_get_split_values(a))
+
+
+#### External Functions ####
+
+def combine(initial, medial, final=None):
+    """
+    Combines three Korean letters into a syllable
+
+    Args:
+        initial (str): an initial Korean letter
+        medial (str): a medial Korean letter
+        final (str): a final Korean letter (default is None)
+
+    Returns:
+        str: a one-character syllable
+
+    Example:
+        ('ㄷ', 'ㅏ', 'ㄺ') --> '닭' 
+
+    """
+
+    return chr(_get_combined_value(initial, medial, final))
+
+def split(a, fill_finals=False):
+    """
+    Converts a Korean syllable character into a sequence of letters
+
+    Args:
+        a (str): a Korean syllable character
+        fill_finals (bool): return an empty string in finals position
+            if no final is provided in the input (default is False)
+
+    Returns:
+        tuple(str, str(, str)): a tuple of Korean letters, optionally
+            includes an empty string to occupy empty final letter
+            position
+
+    Examples:
+        '닭' --> ('ㄷ', 'ㅏ', 'ㄺ')     (fill_finals=True or False)
+        '다' --> ('ㄷ', 'ㅏ')           (fill_finals=False)
+        '다' --> ('ㄷ', 'ㅏ', '')       (fill_finals=True)
+    """
+
+    output = _get_letters(_get_split_values(a))
+
+    # Remove empty strings in finals position if fill_finals is False
+    if output[2] == '' and not fill_finals:
+        output = output[:2]
+
+    return output
 
 
 
 """Section: Tests for Korean input."""
 
 def isSyllable(text):
-    #returns true if input text is a single Korean syllable; input must be a string
-    #1-character strings evaluated as KO syllables or not; 2-character strings all return False
-    #currently only returns true for modern Korean syllables
+    """
+    Test whether an input string is a Korean syllable or not
+
+    Args:
+        text (str): the string to test
+
+    Returns:
+        bool: True if the input string is of length one and is a Korean
+            syllable (i.e., is located within the Unicode range
+            specified below). False otherwise.
+
+    TODO: implement other Unicode ranges containing Korean syllables;
+    currently only returns true for modern Korean syllables using the
+    default unicode space
+    """
+
     if len(text) == 1 and 44032 <= ord(text) <= 55203:
         return True
     else:
         return False
 
 
-def isMultigraph(letter):
-    #Check for clusters found in coda positions
-    
-    #check in U3130 set (12593-12686)
-    if ord(letter) in {12595,12597,12598,12602,12603,12604,12605,12606,12607,12608,12612}:
+def isComplexCoda(char):
+    """
+    Test whether the character is a coda character containing two 
+    letters (i.e., a consonant cluser).
+
+    Ssangjaeum (doubled consonants) are *not* treated as consonant
+    clusters by this algorithm.
+
+    Args:
+        char (char): a single character
+
+    Returns:
+        bool: True if the character represents two adjacent coda 
+        consonants, False otherwise
+    """
+   
+    coda_ccs = []
+
+    # add coda clusters in U1100 set (4520-4607)
+    coda_ccs += [4522, 4524, 4525, 4528, 4529, 4530, 4531, 4532, 4533,
+            4534, 4537, 4547, 4748, 4549, 4550, 4551, 4552, 4553, 4554,
+            4555, 4556, 4557, 4558, 4559, 4560, 4561, 4562, 4563, 4564,
+            4565, 4566, 4567, 4568, 4569, 4570, 4571, 4572, 4573, 4574,
+            4575, 4576, 4577, 4579, 4580, 4581, 4583, 4584, 4585, 4586,
+            4588, 4589, 4590, 4591, 4593, 4594, 4595, 4597, 4598, 4599,
+            4600, 4602, 4603, 4604, 4605, 4606]
+
+    #add coda clusters in U3130 set (12593-12686)
+    coda_ccs += [12595, 12597, 12598, 12602, 12603, 12604, 12605,12606,
+            12607,12608,12612, 12647, 12648, 12649, 12650, 12651, 
+            12652, 12653, 12655, 12656]
+
+    # add coda clusters in UD7B0 set (55216-55291)
+    # note that this set excludes initial consonants (see corresponding
+    # set UA960)
+    coda_ccs += [55243, 55243, 55244, 55246, 55247, 55248, 55249, 55250,
+            55251, 55252, 55253, 55254, 55255, 55256, 55257, 55258, 
+            55259, 55260, 55262, 55263, 55265, 55266, 55267, 55268, 
+            55269, 55271, 55272, 55273, 55274, 55275, 55276, 55277, 
+            55278, 55279, 55280, 55281, 55282, 55283, 55284, 55285, 
+            55286, 55287, 55288, 55290]
+
+
+    if ord(char) in coda_ccs:
         return True
     else:
         return False
 	
-    #check in U1100 set (4342-4469)
-    #check in UA960 set (43360-43388)
-    #check in UD7B0 set (55216-55291)
+
+def isComplexOnset(char):
+    """
+    Test whether the character is an onset character containing two 
+    letters (i.e., a consonant cluser). Note that this does not occur in
+    modern Korean writing.
+    
+    Ssangjaeum (doubled consonants) are *not* treated as consonant
+    clusters by this algorithm.
 
 
+    Args:
+        char (char): a single character
 
-def isLetter(letter):
-    value = ord(letter)
-    #check in U3130 set (12593-12686)
-    if value >= 12593 and value <= 12686:
+    Returns:
+        bool: True if the character represents two adjacent onset 
+        consonants, False otherwise
+    """
+    onset_ccs = []
+
+    #check in U1100 set (4371-4446)
+    onset_ccs += [4371, 4373, 4374, 4375, 4376, 4378, 4380, 4382, 4383,
+            4384, 4385, 4386, 4387, 4388, 4389, 4390, 4391, 4392, 4393,
+            4394, 4397, 4398, 4399, 4400, 4401, 4402, 4403, 4404, 4405,
+            4406, 4407, 4408, 4409, 4410, 4411, 4417, 4418, 4419, 4420,
+            4421, 4422, 4424, 4425, 4426, 4427, 4429, 4434, 4435, 4438,
+            4442, 4443, 4444, 4445, 4446]
+
+    #check in U3130
+    onset_ccs += [12646, 12654, 12658, 12659, 12660, 12661, 12662, 
+            12663, 12666, 12667, 12668, 12669, 12670, 12674, 12675]
+
+    # add onset clusters in UA960 set (43360-43388)
+    # note that set UA960 exclusively contains old initial consonants
+    onset_ccs += [x for x in range(43360, 44385)]
+    onset_ccs += [43386, 43387]
+
+    if ord(char) in onset_ccs:
+        return True
+    else:
+        return False
+	
+
+
+def isLetter(char):
+    """
+    Test whether the character is letter rather than a syllable. Onset
+    and coda clusters return a value of True.
+
+    Args:
+        char (char)
+
+    Returns:
+        bool: True if char is a single Korean letter, otherwise False
+
+    """
+
+    # Return False for consonant clusters
+    if isComplexOnset(char) or isComplexCoda(char):
+        return False
+
+    value = ord(char)
+
+    #check in U3130 set (12593-12686), and exclude empty values
+    if value >= 12593 and value <= 12686 and value != 12644:
         return True
 	
-    #check in U1100 set (4342-4469)
-    elif value >= 4352 and value <= 4607:
+    #check in U1100 set (4352-4469), and exclude empty values
+    elif value >= 4352 and value <= 4607 and value not in [4447, 4448]:
         return True
 
     #check in UA960 set (43360-43388)
@@ -125,25 +330,35 @@ def isLetter(letter):
         return True
 
     #check in UD7B0 set (55216-55291), and exclude empty values
-    elif value >= 55216 and value <= 55291 and not (value >= 55239 and value <= 55242):
-        return True
-
-    else:
-        return False
-
-def isHangul(text):
-    if isSyllable(text) or isLetter(text):
+    elif value >= 55216 and value <= 55291 and (
+            value not in [55239, 55240, 55241, 55242]):
         return True
     else:
         return False
 
+def isHangul(char):
+    """
+    Checks whether input is a Korean Hangul (and not Hanja) symbol.
+
+    Args:
+        char (char)
+
+    Returns:
+        bool: True if char is a Korean Hangul symbol, including
+        syllables, individual letters, and clusters. False otherwise.
+    """
+    if isSyllable(char) or isLetter(char) or \
+            isComplexOnset(char) or isComplexCoda(char):
+        return True
+    else:
+        return False
 
 
+#### Romanization
 
-
-""""Romanization"""
 def toYale(text, syllable=None, WO=False, U=False, strict=False):
-    """Options: 
+    """
+    Options: 
     syllable = max (will place a dot between all syllables in a word)
     syllable = min (limits dots to official Yale rules, with a few extra)
     syllable = none (no syllables boundaries marked)
@@ -151,7 +366,8 @@ def toYale(text, syllable=None, WO=False, U=False, strict=False):
     U = True (will use <u> after labial consonants)
     strict = True (follows Yale Romanization rules as closely as possible, without
     phonological knowledge; currently, this sets WO and U to true, and syllable to min, 
-    regardless what the user entered"""
+    regardless what the user entered
+    """
     
     output = ''
     prev_letters = None
@@ -226,9 +442,3 @@ def toYale(text, syllable=None, WO=False, U=False, strict=False):
             output = output + char
             prev_letters = None
     return output            
- 
-
-
-
-
-
