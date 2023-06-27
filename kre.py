@@ -93,7 +93,7 @@ class KRE_Match:
     def __init__(self, endpos = None, lastgroup = None, 
             lastindex = None, pos = 0, re = None, regs = None, 
             string = None, kre = None, kre_pos = 0, kre_endpos = None, 
-            index_mapping = None, kre_string = None):
+            orig_index = None, kre_string = None):
        
         self.endpos =  endpos # int; last index pos==len(self.string)
         self.lastgroup = lastgroup
@@ -108,7 +108,7 @@ class KRE_Match:
         self.kre_endpos = kre_endpos
         self.kre_pos = kre_pos
         self.kre_string = kre_string
-        self.index_mapping = index_mapping
+        self.orig_index = orig_index
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
@@ -199,9 +199,9 @@ def kre_pattern_string(func):
                 }
 
         # Pop kwargs specific to kre
-        for key, value in kre_kwargs.items():
+        for key in kre_kwargs.keys():
             if key in kwargs:
-                value = kwargs.pop(key)
+                kre_kwargs[key] = kwargs.pop(key)
        
         # Linearize the pattern and string
         kre_pattern = _linearize(args[0])[0]
@@ -275,13 +275,14 @@ def findall(pattern, string, flags=0, boundaries=False,
     # and return the syllable(s) they are part of
     if match:
         regex = compile(_linearize(pattern)[0])
-        linearized_string, index_mapping = _linearize(string, 
+        linearized_string, orig_index = _linearize(string, 
                 boundaries, boundary_marker)
         pos = 0 
         match_list = []
         for item in match:
             sub_match = regex.search(linearized_string, pos)
-            source_string_span = _get_span(sub_match, index_mapping)
+            source_string_span = _get_span(sub_match, orig_index,
+                    boundaries, boundary_marker)
             match_list.append(
                     string[source_string_span[0]:source_string_span[1]]
                     )
@@ -309,7 +310,7 @@ def finditer(pattern, string, flags=0, boundaries=False,
     # For all re.Match objects in 
     if match:
         regex = compile(_linearize(pattern)[0])
-        linearized_string, index_mapping = _linearize(string, 
+        linearized_string, orig_index = _linearize(string, 
                 boundaries, boundary_marker)
         pos = 0 
         match_list = []
@@ -357,56 +358,80 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
         characters
 
     Outputs:
-        linear (str): linearized version of input string
-        index_list (lst): letter position mapping as a pair containing
-            [position_in_output_string, position_in_input_string]
+        linearized_str (str): linearized version of input string
+        orig_index (lst): index of character positions in input string
+            ex. given input 한국:
+                linearized_str -> ㅎㅏㄴㄱㅜㄱ
+                orig_index[4] -> 1 (ㅜ in index 1 in input)
     """
 
-    letter_by_letter = ''
-    index_list = []
-    real_index = 0
-    new_index = 0
-    for word in string:
-        for symbol in word:
-            if KO.isSyllable(symbol) == True:
-                for letter in KO.split(symbol):
-                    if letter != '':
-                        letter_by_letter = letter_by_letter + letter
-                        index_list.append([new_index, real_index])
-                        new_index += 1
-                if boundaries==True:
-                    letter_by_letter = letter_by_letter + \
-                            boundary_marker
-                    index_list.append([new_index, real_index])
-                    new_index += 1
-            else:
-                letter_by_letter = letter_by_letter + symbol
-                index_list.append([new_index, real_index])
-                new_index += 1
+    linearized_str = ''
+    orig_index = []
+    linear_index = 0
+    prev_was_korean = False
 
-        real_index += 1
- 
-    return (letter_by_letter, index_list)
 
-def _get_span(match, index_mapping):
+    for char_ in string:
+        if KO.isSyllable(char_):
+            
+            # add boundary symbol in front of Korean syllable
+            if boundaries==True and not prev_was_korean:
+                linearized_str += boundary_marker
+                orig_index.append(linear_index)
+
+            # append the linearized string
+            for letter in ''.join(KO.split(char_)):
+                linearized_str += letter
+                orig_index.append(linear_index)
+
+            # add boundary symbol at end of Korean syllable
+            if boundaries==True:
+                linearized_str += boundary_marker
+                orig_index.append(linear_index)
+            
+            linear_index += 1
+            prev_was_korean = True
+
+        else:
+            linearized_str += char_
+            orig_index.append(linear_index)
+            linear_index += 1
+            prev_was_korean = False
+
+    return (linearized_str, orig_index)
+
+def _get_span(match_, orig_index, boundaries=False, boundary_marker=';'):
     """
     Map the index positions of the match to their corresponding 
     positions in the source text
 
     Args:
-        match: re.Match object carried out over the linearized text
-        index_mapping: index_list returned from _linearize function
+        match_: re.Match object carried out over the linearized text
+        orig_index: index_list returned from _linearize function
 
     Returns:
         list: a list containing the corresponding span positions in the
             original (non-linearized) text
     """
 
-    span_index = list(match.span())
-    return (index_mapping[span_index[0]][1], 
-            index_mapping[span_index[1]-1][1] + 1)
+    span_index = list(match_.span())
+    if boundaries == True and match_.group(0)[0] == boundary_marker:
+        span_start = orig_index[span_index[0]+1]
+    else:
+        span_start = orig_index[span_index[0]]
 
-def _make_match_object(pattern, string, match, boundaries=False, 
+    # re.MATCH object's span end is index *after* final character,
+    # so, we need to subtract one to get the index of the character 
+    # to map back to the original, then add one to the result to 
+    # get the index after this character
+    if boundaries == True and match_.group(0)[-1] == boundary_marker:
+        span_end = orig_index[span_index[1]-2] + 1
+    else:
+        span_end = orig_index[span_index[1]-1] + 1
+    
+    return (span_start, span_end)
+
+def _make_match_object(pattern, string, match_, boundaries=False, 
         boundary_marker=';'):
     """
     Instantiates a KRE_Match object
@@ -414,20 +439,21 @@ def _make_match_object(pattern, string, match, boundaries=False,
     Args:
         pattern: original (unlinearized) pattern
         string: original (unlinearized) string
-        match: re.Match object
+        match_: re.Match object
 
     Returns:
-        KRE.Match object
+        KRE_Match object
     """
     
-    linearized_string, index_mapping = _linearize(string, boundaries, 
+    linearized_string, orig_index = _linearize(string, boundaries, 
             boundary_marker)
     match_obj = KRE_Match(
             kre = re.compile(_linearize(pattern)[0]), 
             re = re.compile(pattern), 
             string = string, 
             kre_string = linearized_string, 
-            regs = (_get_span(match, index_mapping),), 
-            index_mapping = index_mapping
+            regs = (_get_span(match_, orig_index, boundaries, 
+                boundary_marker),), 
+            orig_index = orig_index
             )
     return match_obj 
