@@ -3,7 +3,7 @@
 #Author: Darrell Larsen
 #
 #Distributed under GNU General Public License v3.0
-from constants import initials, medials, finals
+from constants import *
 
 """Section: Conversion between Korean syllables (as Unicode object 
 strings) and their component sounds.
@@ -41,7 +41,6 @@ def _get_split_values(a):
     init = ((value_a -44032) - mid*28 - fin) / 588
 
     return (int(init), int(mid), int(fin))
-
 
 def _get_letters(value_set):
     """
@@ -85,7 +84,6 @@ def _get_combined_value(initial, medial, final=None):
     Example:
         'ㄷ', 'ㅏ', 'ㄺ' --> 45805 
     """
-
     output = 44032 + initials[initial][0]*588 + medials[medial][0]*28
     
     if final:
@@ -127,31 +125,177 @@ def _combine_value_list(a):
 
     return _values_to_letter(_get_letters(a))
 
+def _split_coda(final):
+    """
+    Splits a complex coda/final into separate letters.
 
+    Args:
+        final: a Korean letter
+
+    Returns:
+        a string containing the split letters or the input if not a 
+        complex coda
+    """
+    if final in split_finals.keys():
+        final = split_finals[final]
+
+    return final
+
+def _combine_coda(final):
+    """
+    Combines letters of a complex coda/final into a single character.
+
+    Args:
+        final (str): a Korean letter
+
+    Returns:
+        the character represent the complex coda/final or the input if
+        not a complex coda
+    """
+    if final in split_finals.keys():
+    
+        final = split_finals[final]
+
+    return final
 
 
 #### External Functions ####
 
-def combine(initial, medial, final=None):
+def combine(*args):
     """
-    Combines three Korean letters into a syllable
+    Combines 2-4 Korean letters into a single syllable
 
     Args:
-        initial (str): an initial Korean letter
-        medial (str): a medial Korean letter
-        final (str): a final Korean letter (default is None)
+        str or letter-separated (list or tuple)
 
     Returns:
         str: a one-character syllable
 
     Example:
+        'ㄷㅏㄺ' --> '닭'
+        'ㄷㅏㄹㄱ' --> '닭'
         ('ㄷ', 'ㅏ', 'ㄺ') --> '닭' 
+        ('ㄷ', 'ㅏ', 'ㄹㄱ') --> '닭' 
+        ('ㄷ', 'ㅏ', 'ㄹ','ㄱ') --> '닭' 
 
     """
 
-    return chr(_get_combined_value(initial, medial, final))
+    # If length one, should be str, list, or tuple
+    # Sets args = list, tuple, or list(str)
+    if len(args) == 1:
+        args = args[0]
+        if type(args) is str:
+            args = list(args)
 
-def split(a, fill_finals=False):
+    if 1 < len(args) < 5:
+        # combine two-letter complex finals, if any
+        final = _combine_coda(''.join(args[2:]))
+
+        # construct and return syllable
+        return chr(_get_combined_value(args[0], args[1], final))
+
+    elif len(args) > 4:
+        raise Exception("Too many characters")
+    else:
+        raise Exception("Insufficient characters")
+        
+def syllabify(text):
+    """
+    Combines a string of Korean letters into syllables.
+
+    Args:
+        text (str): a string which presumably contains at least some
+            Korean letters
+
+    Returns:
+        str: a string of in which any linear sequences of possible 
+        Korean syllables have been replaced with Korean syllables
+    """
+
+    buffer = ''
+    output = ''
+
+    for char in text:
+        if not isLetter(char, include_complex=True):
+            if len(buffer) > 1:
+                output += combine(buffer)
+            else:
+                output += buffer
+            output += char
+            buffer = ''
+            continue
+
+        elif not buffer:
+            # only accept an onset letter
+            if char not in initials.keys():
+                output += char
+            else:
+                buffer = char
+            continue
+
+        elif len(buffer) == 1:
+            if char in medials.keys():
+                buffer += char
+            else:
+                output += buffer
+                if char in initials.keys():
+                    buffer = char
+                else:
+                    buffer = ''
+            continue
+
+        elif len(buffer) == 2:
+            if char in combined_finals.keys():
+                output += combine(buffer + char)
+                buffer = ''
+            elif char in finals.keys():
+                buffer += char
+            else:
+                output += combine(buffer)
+                if char in initials.keys():
+                    buffer = char
+                else:
+                    output += char
+                    buffer = ''
+            continue
+
+        elif len(buffer) == 3: 
+            if (buffer[-1] + char) in split_finals.keys():
+                buffer += char
+            elif char in initials.keys():
+                output += combine(buffer)
+                buffer = char
+            elif char in medials.keys():
+                output += combine(buffer[:-1])
+                buffer = buffer[-1] + char
+            else:
+                output += combine(buffer) + char
+                buffer = ''
+            continue
+        
+        elif len(buffer) == 4:
+            if char in initials.keys():
+                output += combine(buffer)
+                buffer = char
+            elif char in medials.keys():
+                output += combine(buffer[:-1])
+                buffer = buffer[-1] + char
+            else:
+                output += combine(buffer) + char
+                buffer = ''
+            continue
+
+        else:
+            raise Exception("This shouldn't happen")
+
+    if len(buffer) > 1:
+        output += combine(buffer)
+    else:
+        output += buffer
+
+    return output
+
+def split(a, fill_finals=False, split_coda=False):
     """
     Converts a Korean syllable character into a sequence of letters
 
@@ -161,21 +305,24 @@ def split(a, fill_finals=False):
             if no final is provided in the input (default is False)
 
     Returns:
-        tuple(str, str(, str)): a tuple of Korean letters, optionally
+        list(str, str(, str)): a list of Korean letters, optionally
             includes an empty string to occupy empty final letter
             position
 
     Examples:
-        '닭' --> ('ㄷ', 'ㅏ', 'ㄺ')     (fill_finals=True or False)
-        '다' --> ('ㄷ', 'ㅏ')           (fill_finals=False)
-        '다' --> ('ㄷ', 'ㅏ', '')       (fill_finals=True)
+        '닭' --> ['ㄷ', 'ㅏ', 'ㄺ']     (fill_finals=True or False)
+        '다' --> ['ㄷ', 'ㅏ']           (fill_finals=False)
+        '다' --> ['ㄷ', 'ㅏ', '']       (fill_finals=True)
+        '닭' --> ['ㄷ', 'ㅏ', 'ㄹㄱ']   (split_coda=True
     """
 
-    output = _get_letters(_get_split_values(a))
+    output = list(_get_letters(_get_split_values(a)))
+    if split_coda:
+        output[-1] = _split_coda(output[-1])
 
     # Remove empty strings in finals position if fill_finals is False
-    if output[2] == '' and not fill_finals:
-        output = output[:2]
+    if output[-1] == '' and not fill_finals:
+        output = output[:-1]
 
     return output
 
@@ -204,7 +351,6 @@ def isSyllable(text):
         return True
     else:
         return False
-
 
 def isComplexCoda(char):
     """
@@ -253,7 +399,6 @@ def isComplexCoda(char):
         return True
     else:
         return False
-	
 
 def isComplexOnset(char):
     """
@@ -295,25 +440,39 @@ def isComplexOnset(char):
         return True
     else:
         return False
-	
 
-
-def isLetter(char):
+def isJamo(char): # shortcut function
     """
-    Test whether the character is letter rather than a syllable. Onset
-    and coda clusters return a value of True.
+    Test whether the character is Jamo (Korean letter, including
+    complex letters) rather than a syllable.
 
     Args:
         char (char)
 
     Returns:
-        bool: True if char is a single Korean letter, otherwise False
+        bool: True if char is a Korean Jamo, otherwise False
+    """
+
+    return isLetter(char, include_complex=True)
+
+def isLetter(char, include_complex=False):
+    """
+    Test whether the character is letter rather than a syllable. Onset
+    and coda clusters return a value of False. (Use isJamo() to accept
+    complex clusters as well.)
+
+    Args:
+        char (char)
+
+    Returns:
+        bool: True if char is a single Korean letter (optionally
+        including clusters), otherwise False
 
     """
 
-    # Return False for consonant clusters
-    if isComplexOnset(char) or isComplexCoda(char):
-        return False
+    if include_complex == False:
+        if isComplexOnset(char) or isComplexCoda(char):
+            return False
 
     value = ord(char)
 
@@ -347,11 +506,27 @@ def isHangul(char):
         bool: True if char is a Korean Hangul symbol, including
         syllables, individual letters, and clusters. False otherwise.
     """
-    if isSyllable(char) or isLetter(char) or \
-            isComplexOnset(char) or isComplexCoda(char):
+    if isSyllable(char) or isJamo(char):
         return True
     else:
         return False
+
+def hasHangul(text):
+    """
+    Checks whether the input string contains Korean Hangul (and not Hanja)
+
+    Args:
+        text (str)
+
+    Returns:
+        bool: True if text contains a Korean Hangul symbol, including
+        syllables, individual letters, and clusters. False otherwise.
+    """
+    for char in text:
+        if isHangul(char):
+            return True
+
+    return False
 
 
 #### Romanization
