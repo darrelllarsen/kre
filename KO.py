@@ -15,13 +15,13 @@ built-in ord() and chr() functions.
 
 # TODO: implement exceptions throughout
 
-def _get_split_values(a):
+def _get_split_values(char):
     """
     Convert a one-character Korean syllable 3-tuple of dictionary
     look-up values
 
     Args:
-        a (str): a one-character Korean syllable input
+        char (str): a one-character Korean syllable input
 
     Returns:
         tuple(int, int, int): tuple of look-up values of the initial,
@@ -32,13 +32,13 @@ def _get_split_values(a):
     """
    
     # Get the Unicode value of the input string
-    value_a = ord(a)
+    value_char = ord(char)
 
     # Convert value_a into the look-up values of the letters it 
     # represents
-    fin = ((value_a-44032) % 588) % 28
-    mid = (((value_a - 44032) % 588) - fin) / 28
-    init = ((value_a -44032) - mid*28 - fin) / 588
+    fin = ((value_char-44032) % 588) % 28
+    mid = (((value_char - 44032) % 588) - fin) / 28
+    init = ((value_char -44032) - mid*28 - fin) / 588
 
     return (int(init), int(mid), int(fin))
 
@@ -91,13 +91,13 @@ def _get_combined_value(initial, medial, final=None):
 
     return output
 
-def _values_to_letter(a):
+def _values_to_letter(char_seq):
     """
     Convert a sequence of Korean letters into their one-character
     syllable representation
 
     Arguments:
-        a (list): a sequence of two or three Korean letters
+        char_seq (list): a sequence of two or three Korean letters
 
     Returns:
         str: a one-character syllable
@@ -107,14 +107,14 @@ def _values_to_letter(a):
     """
     #TODO: allow input of length 2
 
-    return chr(_get_combined_value(a[0],a[1],a[2]))
+    return chr(_get_combined_value(char_seq[0],char_seq[1],char_seq[2]))
    
-def _combine_value_list(a):
+def _combine_value_list(char_seq):
     """
     Convert a list of look-up values into a one-character syllable
 
     Args:
-        a (list): a sequence of look-up values
+        char_seq (list): a sequence of look-up values
 
     Returns:
         str: one-character syllable
@@ -123,7 +123,7 @@ def _combine_value_list(a):
         (3, 0, 9) --> '닭'
     """
 
-    return _values_to_letter(_get_letters(a))
+    return _values_to_letter(_get_letters(char_seq))
 
 def _split_coda(final):
     """
@@ -295,12 +295,12 @@ def syllabify(text):
 
     return output
 
-def split(a, fill_finals=False, split_coda=False):
+def split(char, fill_finals=False, split_coda=False):
     """
     Converts a Korean syllable character into a sequence of letters
 
     Args:
-        a (str): a Korean syllable character
+        char (str): a Korean syllable character
         fill_finals (bool): return an empty string in finals position
             if no final is provided in the input (default is False)
 
@@ -316,7 +316,7 @@ def split(a, fill_finals=False, split_coda=False):
         '닭' --> ['ㄷ', 'ㅏ', 'ㄹㄱ']   (split_coda=True
     """
 
-    output = list(_get_letters(_get_split_values(a)))
+    output = list(_get_letters(_get_split_values(char)))
     if split_coda:
         output[-1] = _split_coda(output[-1])
 
