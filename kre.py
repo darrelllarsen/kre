@@ -113,12 +113,14 @@ class KRE_Match:
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
                 self.span(), self.string[self.span()[0]:self.span()[1]])
 
-    def end(self):
+    def end(self, *args):
         """
         end([group=0]) -> int.
         Return index of the end of the substring matched by group.
         """
-        return self.regs[0][1]
+        if not args:
+            args = [0,]
+        return self.regs[args[0]][1]
 
     def expand():
         """
@@ -128,13 +130,21 @@ class KRE_Match:
         """
         pass
     
-    def group(self):
+    def group(self, *args):
         """
         group([group1, ...]) -> str or tuple.
         Return subgroup(s) of the match by indices or names.
         For 0 returns the entire match.
         """
-        pass
+        response = []
+        if not args:
+            args = [0,]
+        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] for 
+                    arg in args]
+        if len(res) == 1:
+            return res[0]
+        else:
+            return tuple(res)
 
     def groupdict(self):
         """
@@ -145,29 +155,39 @@ class KRE_Match:
         """
         pass
 
-    def groups(self):
+    def groups(self, default=None):
         """
         groups([default=None]) -> tuple.
         Return a tuple containing all the subgroups of the match, from
         1. The default argument is used for groups that did not 
         participate in the match
         """
-        pass
+        g = []
+        for n in range(1, len(self.Match.groups())+1):
+            if self.span(n) == (-1, -1):
+                g.append(default)
+            else:
+                g.append(self.string[self.span(n)[0]:self.span(n)[1]])
+        return tuple(g)
 
-    def span(self):
+    def span(self, *args):
         """
         span([group]) -> tuple.
         For MatchObject m, return the 2-tuple (m.start(group),
         m.end(group)).
         """
-        return self.regs[0]       
+        if not args:
+            args = [0,]
+        return self.regs[args[0]]
 
-    def start(self):
+    def start(self, *args):
         """
         start([group=0]) -> int.
         Return index of the start of the substring matched by group.
         """
-        return self.regs[0][0]
+        if not args:
+            args = [0,]
+        return self.regs[args[0]][0]
 
 ### Public interface
 
@@ -582,10 +602,52 @@ def _make_match_object(pattern, string, Match, boundaries=False,
             kre = re.compile(_linearize(pattern)[0]), 
             re = re.compile(pattern), 
             string = string, 
-            kre_string = linearized_string, 
-            regs = (_get_span(Match, orig_index, boundaries, 
-                boundary_marker),), 
+            kre_string = linearized_string,
+            regs = _get_regs(Match, orig_index, boundaries,
+                boundary_marker),
+            #regs = (_get_span(Match, orig_index, boundaries, 
+            #    boundary_marker),), 
             orig_index = orig_index,
             Match = Match,
             )
     return match_obj 
+
+def _get_regs(Match, orig_index, boundaries=False, boundary_marker=';'):
+    # TODO: update doc; remove _get_span and replace with this
+    # eventually
+    """
+    Map the index positions of the match to their corresponding 
+    positions in the source text
+
+    Args:
+        Match: re.Match object carried out over the linearized text
+        orig_index: index_list returned from _linearize function
+
+    Returns:
+        list: a list containing the corresponding span positions in the
+            original (non-linearized) text
+    """
+    regs = []
+    for n in range(len(Match.groups())+1):
+        span = Match.span(n)
+        # (-1, -1) used for groups that did not contibute to the match
+        if span == (-1, -1):
+            regs.append(span)
+            continue
+        elif boundaries == True and Match.group(n)[0] == boundary_marker:
+            span_start = orig_index[span[0]+1]
+        else:
+            span_start = orig_index[span[0]]
+
+        # re.MATCH object's span end is index *after* final character,
+        # so, we need to subtract one to get the index of the character 
+        # to map back to the original, then add one to the result to 
+        # get the index after this character
+        if boundaries == True and Match.group(n)[-1] == boundary_marker:
+            span_end = orig_index[span[1]-2] + 1
+        else:
+            span_end = orig_index[span[1]-1] + 1
+
+        regs.append((span_start, span_end))
+    
+    return tuple(regs)
