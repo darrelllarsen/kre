@@ -509,7 +509,7 @@ def escape(pattern):
     """
     kre modification: none
     """
-    re.escape(pattern)
+    return re.escape(pattern)
 
 ### Private interface
 
