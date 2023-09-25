@@ -1,5 +1,4 @@
 ﻿#KRE: Support for Korean regular expression searches.
-#Version 0.5.2
 #Author: Darrell Larsen
 #
 #Distributed under GNU General Public License v3.0
@@ -89,7 +88,7 @@ class KRE_Match:
     def __init__(self, endpos = None, lastgroup = None, 
             lastindex = None, pos = 0, re = None, regs = None, 
             string = None, kre = None, kre_pos = 0, kre_endpos = None, 
-            orig_index = None, kre_string = None, Match=None):
+            lin2syl_mapping = None, kre_string = None, Match=None):
        
         self.endpos =  endpos # int; last index pos==len(self.string)
         self.lastgroup = lastgroup
@@ -107,7 +106,7 @@ class KRE_Match:
         self.kre_string = kre_string
 
         # Following maps kre_string indices to original string indices
-        self.orig_index = orig_index
+        self.lin2syl_mapping = lin2syl_mapping
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
@@ -441,13 +440,13 @@ def findall(pattern, string, flags=0, boundaries=False,
     # and return the syllable(s) they are part of
     if match:
         regex = compile(_linearize(pattern)[0])
-        linearized_string, orig_index = _linearize(string, 
+        linearized_string, lin2syl_mapping = _linearize(string, 
                 boundaries, boundary_marker)
         pos = 0 
         match_list = []
         for item in match:
             sub_match = regex.search(linearized_string, pos)
-            source_string_span = _get_span(sub_match, orig_index,
+            source_string_span = _get_span(sub_match, lin2syl_mapping,
                     boundaries, boundary_marker)
             match_list.append(
                     string[source_string_span[0]:source_string_span[1]]
@@ -476,7 +475,7 @@ def finditer(pattern, string, flags=0, boundaries=False,
     # For all re.Match objects in 
     if match_:
         regex = compile(_linearize(pattern)[0])
-        linearized_string, orig_index = _linearize(string, 
+        linearized_string, lin2syl_mapping = _linearize(string, 
                 boundaries, boundary_marker)
         pos = 0 
         match_list = []
@@ -525,14 +524,14 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
 
     Outputs:
         linearized_str (str): linearized version of input string
-        orig_index (lst): index of character positions in input string
+        lin2syl_mapping (lst): index of character positions in input string
             ex. given input 한국:
                 linearized_str -> ㅎㅏㄴㄱㅜㄱ
-                orig_index[4] -> 1 (ㅜ in index 1 in input)
+                lin2syl_mapping[4] -> 1 (ㅜ in index 1 in input)
     """
 
     linearized_str = ''
-    orig_index = []
+    lin2syl_mapping = []
     linear_index = 0
     just_saw_boundary = False
 
@@ -543,37 +542,37 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
             # add boundary symbol in front of Korean syllable
             if boundaries==True and not just_saw_boundary:
                 linearized_str += boundary_marker
-                orig_index.append(linear_index)
+                lin2syl_mapping.append(linear_index)
 
             # append the linearized string
             for letter in ''.join(KO.split(char_, split_coda=True)):
                 linearized_str += letter
-                orig_index.append(linear_index)
+                lin2syl_mapping.append(linear_index)
 
             # add boundary symbol at end of Korean syllable
             if boundaries==True:
                 linearized_str += boundary_marker
-                orig_index.append(linear_index)
+                lin2syl_mapping.append(linear_index)
             
             linear_index += 1
             just_saw_boundary = True
 
         else:
             linearized_str += char_
-            orig_index.append(linear_index)
+            lin2syl_mapping.append(linear_index)
             linear_index += 1
         just_saw_boundary = (linearized_str[-1] == boundary_marker)
 
-    return (linearized_str, orig_index)
+    return (linearized_str, lin2syl_mapping)
 
-def _get_span(Match, orig_index, boundaries=False, boundary_marker=';'):
+def _get_span(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
     """
     Map the index positions of the match to their corresponding 
     positions in the source text
 
     Args:
         Match: re.Match object carried out over the linearized text
-        orig_index: index_list returned from _linearize function
+        lin2syl_mapping: index_list returned from _linearize function
 
     Returns:
         list: a list containing the corresponding span positions in the
@@ -582,18 +581,18 @@ def _get_span(Match, orig_index, boundaries=False, boundary_marker=';'):
 
     span_index = list(Match.span())
     if boundaries == True and Match.group(0)[0] == boundary_marker:
-        span_start = orig_index[span_index[0]+1]
+        span_start = lin2syl_mapping[span_index[0]+1]
     else:
-        span_start = orig_index[span_index[0]]
+        span_start = lin2syl_mapping[span_index[0]]
 
     # re.MATCH object's span end is index *after* final character,
     # so, we need to subtract one to get the index of the character 
     # to map back to the original, then add one to the result to 
     # get the index after this character
     if boundaries == True and Match.group(0)[-1] == boundary_marker:
-        span_end = orig_index[span_index[1]-2] + 1
+        span_end = lin2syl_mapping[span_index[1]-2] + 1
     else:
-        span_end = orig_index[span_index[1]-1] + 1
+        span_end = lin2syl_mapping[span_index[1]-1] + 1
     
     return (span_start, span_end)
 
@@ -611,21 +610,21 @@ def _make_match_object(pattern, string, Match, boundaries=False,
         KRE_Match object
     """
     
-    linearized_string, orig_index = _linearize(string, boundaries, 
+    linearized_string, lin2syl_mapping = _linearize(string, boundaries, 
             boundary_marker)
     match_obj = KRE_Match(
             kre = re.compile(_linearize(pattern)[0]), 
             re = re.compile(pattern), 
             string = string, 
             kre_string = linearized_string,
-            regs = _get_regs(Match, orig_index, boundaries,
+            regs = _get_regs(Match, lin2syl_mapping, boundaries,
                 boundary_marker),
-            orig_index = orig_index,
+            lin2syl_mapping = lin2syl_mapping,
             Match = Match,
             )
     return match_obj 
 
-def _get_regs(Match, orig_index, boundaries=False, boundary_marker=';'):
+def _get_regs(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
     # TODO: update doc; remove _get_span and replace with this
     # eventually
     """
@@ -634,7 +633,7 @@ def _get_regs(Match, orig_index, boundaries=False, boundary_marker=';'):
 
     Args:
         Match: re.Match object carried out over the linearized text
-        orig_index: index_list returned from _linearize function
+        lin2syl_mapping: index_list returned from _linearize function
 
     Returns:
         list: a list containing the corresponding span positions in the
@@ -648,18 +647,18 @@ def _get_regs(Match, orig_index, boundaries=False, boundary_marker=';'):
             regs.append(span)
             continue
         elif boundaries == True and Match.group(n)[0] == boundary_marker:
-            span_start = orig_index[span[0]+1]
+            span_start = lin2syl_mapping[span[0]+1]
         else:
-            span_start = orig_index[span[0]]
+            span_start = lin2syl_mapping[span[0]]
 
         # re.MATCH object's span end is index *after* final character,
         # so, we need to subtract one to get the index of the character 
         # to map back to the original, then add one to the result to 
         # get the index after this character
         if boundaries == True and Match.group(n)[-1] == boundary_marker:
-            span_end = orig_index[span[1]-2] + 1
+            span_end = lin2syl_mapping[span[1]-2] + 1
         else:
-            span_end = orig_index[span[1]-1] + 1
+            span_end = lin2syl_mapping[span[1]-1] + 1
 
         regs.append((span_start, span_end))
     
