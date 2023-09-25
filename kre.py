@@ -127,6 +127,18 @@ class KRE_Match:
         expand(template) -> str.
         Return the string obtained by doing backslash substitution
         on the string template, as done by the sub() method.
+
+        NOTE: not well documented. Example use:
+        number = re.match(r"(\d+)\.(\d+)", "24.1632")
+        print(number.expand(r"Whole: \1 | Fractional: \2"))
+        (output) 'Whole: 24 | Fractional: 1632'
+
+        TODO: When implementing, will need to add argument for degrees 
+        of syllabification, as with sub() function.
+        
+        TODO: Will need to treat linearization of pattern different from
+        string. Need to maintain identifiers of named groups such as  
+        (?P<숫자>\d+) 
         """
         pass
     
@@ -139,8 +151,8 @@ class KRE_Match:
         response = []
         if not args:
             args = [0,]
-        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] for 
-                    arg in args]
+        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] or None 
+                    for arg in args]
         if len(res) == 1:
             return res[0]
         else:
@@ -153,7 +165,10 @@ class KRE_Match:
         match, keyed by the subgroup name. The default argument is used
         for groups that did not participate in the match
         """
-        pass
+        inv_map = {value: key for key, value in
+                self.re.groupindex.items()}
+        return {inv_map[n]: self.group(n) for n in range(1, 
+                len(inv_map)+1)}
 
     def groups(self, default=None):
         """
@@ -605,8 +620,6 @@ def _make_match_object(pattern, string, Match, boundaries=False,
             kre_string = linearized_string,
             regs = _get_regs(Match, orig_index, boundaries,
                 boundary_marker),
-            #regs = (_get_span(Match, orig_index, boundaries, 
-            #    boundary_marker),), 
             orig_index = orig_index,
             Match = Match,
             )
