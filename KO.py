@@ -3,7 +3,7 @@
 #Author: Darrell Larsen
 #
 #Distributed under GNU General Public License v3.0
-from constants import *
+from .constants import *
 
 """Section: Conversion between Korean syllables (as Unicode object 
 strings) and their component sounds.

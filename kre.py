@@ -69,7 +69,8 @@ TODO:
 """
 
 
-import re, KO
+import re
+from . import KO
 
 class KRE_Match:
     """
