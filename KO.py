@@ -3,6 +3,7 @@
 #Author: Darrell Larsen
 #
 #Distributed under GNU General Public License v3.0
+from collections.abc import Sequence
 from .constants import *
 
 """Section: Conversion between Korean syllables (as Unicode object 
@@ -15,7 +16,7 @@ built-in ord() and chr() functions.
 
 # TODO: implement exceptions throughout
 
-def _get_split_values(char):
+def _get_split_values(char) -> tuple[int, int, int]:
     """
     Convert a one-character Korean syllable 3-tuple of dictionary
     look-up values
@@ -30,7 +31,11 @@ def _get_split_values(char):
     Example:
         '닭' --> (3, 0, 9)
     """
-   
+
+    if not isSyllable(char):
+        raise ValueError(
+                f"Korean syllable character expected, got '{char}'")
+
     # Get the Unicode value of the input string
     value_char = ord(char)
 
@@ -42,7 +47,7 @@ def _get_split_values(char):
 
     return (int(init), int(mid), int(fin))
 
-def _get_letters(value_set):
+def _get_letters(value_set: Sequence[int, int, int]) -> tuple[str,str,str]:
     """
     Convert a sequence of look-up values into a one-character syllable
 
@@ -68,7 +73,8 @@ def _get_letters(value_set):
             fin = key
     return (init, mid, fin)
 
-def _get_combined_value(initial, medial, final=None):
+def _get_combined_value(
+        initial: str, medial: str, final: str = None) -> int:
     """
     Convert a sequence of Korean letters into the Unicode value of the
     syllable they constitute
@@ -91,7 +97,7 @@ def _get_combined_value(initial, medial, final=None):
 
     return output
 
-def _values_to_letter(char_seq):
+def _values_to_letter(char_seq: Sequence[str, str, (str)]) -> str:
     """
     Convert a sequence of Korean letters into their one-character
     syllable representation
@@ -105,16 +111,17 @@ def _values_to_letter(char_seq):
     Example:
         ('ㄷ', 'ㅏ', 'ㄺ') --> '닭' 
     """
-    #TODO: allow input of length 2
+    if len(char_seq) == 2:
+        char_seq = list(char_seq)[:] + ['']
 
     return chr(_get_combined_value(char_seq[0],char_seq[1],char_seq[2]))
    
-def _combine_value_list(char_seq):
+def _combine_value_list(int_seq: Sequence[int,int,int]) -> str:
     """
     Convert a list of look-up values into a one-character syllable
 
     Args:
-        char_seq (list): a sequence of look-up values
+        int_seq (list): a sequence of look-up values
 
     Returns:
         str: one-character syllable
@@ -123,9 +130,9 @@ def _combine_value_list(char_seq):
         (3, 0, 9) --> '닭'
     """
 
-    return _values_to_letter(_get_letters(char_seq))
+    return _values_to_letter(_get_letters(int_seq))
 
-def _split_coda(final):
+def _split_coda(final: str) -> str:
     """
     Splits a complex coda/final into separate letters.
 
@@ -136,12 +143,12 @@ def _split_coda(final):
         a string containing the split letters or the input if not a 
         complex coda
     """
-    if final in split_finals.keys():
-        final = split_finals[final]
+    if final in combined_finals.keys():
+        final = combined_finals[final]
 
     return final
 
-def _combine_coda(final):
+def _combine_coda(final: str) -> str:
     """
     Combines letters of a complex coda/final into a single character.
 
@@ -153,7 +160,6 @@ def _combine_coda(final):
         not a complex coda
     """
     if final in split_finals.keys():
-    
         final = split_finals[final]
 
     return final
@@ -161,7 +167,7 @@ def _combine_coda(final):
 
 #### External Functions ####
 
-def combine(*args):
+def combine(*args: str or Sequence[str]) -> str:
     """
     Combines 2-4 Korean letters into a single syllable
 
@@ -199,7 +205,7 @@ def combine(*args):
     else:
         raise Exception("Insufficient characters")
         
-def syllabify(text):
+def syllabify(text) -> str:
     """
     Combines a string of Korean letters into syllables.
 
@@ -295,7 +301,8 @@ def syllabify(text):
 
     return output
 
-def split(char, fill_finals=False, split_coda=False):
+def split(char, 
+        fill_finals=False, split_coda= False) -> list[str, str, (str)]:
     """
     Converts a Korean syllable character into a sequence of letters
 
@@ -330,7 +337,7 @@ def split(char, fill_finals=False, split_coda=False):
 
 """Section: Tests for Korean input."""
 
-def isSyllable(text):
+def isSyllable(text) -> bool:
     """
     Test whether an input string is a Korean syllable or not
 
@@ -352,7 +359,7 @@ def isSyllable(text):
     else:
         return False
 
-def isComplexCoda(char):
+def isComplexCoda(char) -> bool:
     """
     Test whether the character is a coda character containing two 
     letters (i.e., a consonant cluser).
@@ -367,7 +374,7 @@ def isComplexCoda(char):
         bool: True if the character represents two adjacent coda 
         consonants, False otherwise
     """
-   
+
     coda_ccs = []
 
     # add coda clusters in U1100 set (4520-4607)
@@ -395,12 +402,12 @@ def isComplexCoda(char):
             55286, 55287, 55288, 55290]
 
 
-    if ord(char) in coda_ccs:
+    if len(char) == 1 and ord(char) in coda_ccs:
         return True
     else:
         return False
 
-def isComplexOnset(char):
+def isComplexOnset(char) -> bool:
     """
     Test whether the character is an onset character containing two 
     letters (i.e., a consonant cluser). Note that this does not occur in
@@ -417,6 +424,7 @@ def isComplexOnset(char):
         bool: True if the character represents two adjacent onset 
         consonants, False otherwise
     """
+
     onset_ccs = []
 
     #check in U1100 set (4371-4446)
@@ -436,12 +444,12 @@ def isComplexOnset(char):
     onset_ccs += [x for x in range(43360, 44385)]
     onset_ccs += [43386, 43387]
 
-    if ord(char) in onset_ccs:
+    if len(char) == 1 and ord(char) in onset_ccs:
         return True
     else:
         return False
 
-def isJamo(char): # shortcut function
+def isJamo(char) -> bool:
     """
     Test whether the character is Jamo (Korean letter, including
     complex letters) rather than a syllable.
@@ -455,7 +463,7 @@ def isJamo(char): # shortcut function
 
     return isLetter(char, include_complex=True)
 
-def isLetter(char, include_complex=False):
+def isLetter(char, include_complex=False) -> bool:
     """
     Test whether the character is letter rather than a syllable. Onset
     and coda clusters return a value of False. (Use isJamo() to accept
@@ -469,6 +477,9 @@ def isLetter(char, include_complex=False):
         including clusters), otherwise False
 
     """
+
+    if len(char) != 1:
+        return False
 
     if include_complex == False:
         if isComplexOnset(char) or isComplexCoda(char):
@@ -495,7 +506,7 @@ def isLetter(char, include_complex=False):
     else:
         return False
 
-def isHangul(char):
+def isHangul(char) -> bool:
     """
     Checks whether input is a Korean Hangul (and not Hanja) symbol.
 
@@ -511,7 +522,7 @@ def isHangul(char):
     else:
         return False
 
-def hasHangul(text):
+def hasHangul(text) -> bool:
     """
     Checks whether the input string contains Korean Hangul (and not Hanja)
 
@@ -528,10 +539,9 @@ def hasHangul(text):
 
     return False
 
-
 #### Romanization
 
-def toYale(text, syllable=None, WO=False, U=False, strict=False):
+def toYale(text, syllable=None, WO=False, U=False, strict=False) -> str:
     """
     Options: 
     syllable = max (will place a dot between all syllables in a word)
