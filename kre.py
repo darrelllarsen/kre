@@ -771,6 +771,91 @@ class KRE_Pattern:
         else:
             return None
 
+class _KREString:
+    def __init__(self, string, boundaries=False, boundary_marker=';'):
+        self.boundaries = boundaries
+        self.boundary_marker = ';'
+        self.string = string
+        self.lin_string, self.lin2syl_map = self._linearize(string)
+        self.syl_span_map = self._get_syl_span_map()
+
+    def _linearize(self, string):
+        """
+        Linearizes input string by splitting up Korean syllables into 
+        individual Korean letters.
+
+        Args:
+            string (str): input string containing one or more Korean
+            characters
+
+        Outputs:
+            linearized_str (str): linearized version of input string
+            lin2syl_mapping (lst): index of character positions in input string
+                ex. given input 한국:
+                    linearized_str -> ㅎㅏㄴㄱㅜㄱ
+                    lin2syl_mapping[4] -> 1 (ㅜ in index 1 in input)
+        """
+
+        linearized_str = ''
+        lin2syl_mapping = []
+        linear_index = 0
+        just_saw_boundary = False
+
+        for char_ in string:
+            if KO.isSyllable(char_):
+                
+                # add boundary symbol in front of Korean syllable
+                if self.boundaries==True and not just_saw_boundary:
+                    linearized_str += self.boundary_marker
+                    lin2syl_mapping.append(linear_index)
+
+                # append the linearized string
+                for letter in ''.join(KO.split(char_, split_coda=True)):
+                    linearized_str += letter
+                    lin2syl_mapping.append(linear_index)
+
+                # add boundary symbol at end of Korean syllable
+                if self.boundaries==True:
+                    linearized_str += self.boundary_marker
+                    lin2syl_mapping.append(linear_index)
+                
+                linear_index += 1
+
+            else:
+                linearized_str += char_
+                lin2syl_mapping.append(linear_index)
+                linear_index += 1
+            just_saw_boundary = (linearized_str[-1] == self.boundary_marker)
+
+        return (linearized_str, lin2syl_mapping)
+
+    def _get_syl_span_map(self):
+        # Note: to get syllable span (start and end indices) for any given
+        # linearized Korean letter, use syl_span_map[lin_to_syl_map[idx]]
+        syl_span_map = []
+        start = 0
+        mapped_idx = 0
+        for n in range(len(self.lin2syl_map)+1):
+            if n == len(self.lin2syl_map):
+                syl_span_map.append((start, n))
+            elif self.lin2syl_map[n] == mapped_idx:
+                n += 1
+            else:
+                syl_span_map.append((start, n))
+                start = n
+                mapped_idx += 1
+        return syl_span_map
+
+    def get_syl_span(self, idx):
+        return self.syl_span_map[self.lin2syl_map[idx]]
+
+    def get_syl_start(self, idx):
+        return self.get_syl_span(idx)[0]
+
+    def get_syl_end(self, idx):
+        return self.get_syl_span(idx)[1]
+
+
 def _linearize(string, boundaries=False, boundary_marker=';'):
     """
     Linearizes input string by splitting up Korean syllables into 
