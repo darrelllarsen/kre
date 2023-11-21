@@ -434,18 +434,18 @@ def findall(pattern, string, flags=0, boundaries=False,
     calling re.findall()"""
 
     # Run re function on linearized pattern and linearized string
-    match = re.findall(_linearize(pattern)[0], 
+    match_ = re.findall(_linearize(pattern)[0], 
             _linearize(string, boundaries, boundary_marker)[0], flags)
 
     # For all patterns found, find their position in the original text
     # and return the syllable(s) they are part of
-    if match:
+    if match_:
         regex = re.compile(_linearize(pattern)[0])
         linearized_string, lin2syl_mapping = _linearize(string, 
                 boundaries, boundary_marker)
         pos = 0 
         match_list = []
-        for item in match:
+        for item in match_:
             sub_match = regex.search(linearized_string, pos)
             source_string_span = _get_span(sub_match, lin2syl_mapping,
                     boundaries, boundary_marker)
@@ -698,7 +698,7 @@ class KRE_Pattern:
 
         return output
 
-    def subn(self, pattern, repl, string, count=0, boundaries=False, 
+    def subn(self, repl, string, count=0, boundaries=False, 
             boundary_marker=';', syllabify='extended'):
         """
         kre modification: source string and pattern are linearized prior to 
