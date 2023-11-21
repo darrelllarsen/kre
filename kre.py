@@ -813,7 +813,6 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
                 lin2syl_mapping.append(linear_index)
             
             linear_index += 1
-            just_saw_boundary = True
 
         else:
             linearized_str += char_
