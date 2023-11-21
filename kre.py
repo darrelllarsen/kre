@@ -774,7 +774,7 @@ class KRE_Pattern:
 class _KREString:
     def __init__(self, string, boundaries=False, boundary_marker=';'):
         self.boundaries = boundaries
-        self.boundary_marker = ';'
+        self.boundary_marker = boundary_marker
         self.string = string
         self.lin_string, self.lin2syl_map = self._linearize(string)
         self.syl_span_map = self._get_syl_span_map()
