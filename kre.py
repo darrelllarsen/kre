@@ -83,8 +83,8 @@ class KRE_Match:
     """
     def __init__(self, endpos = None, lastgroup = None, 
             lastindex = None, pos = 0, re = None, regs = None, 
-            string = None, kre = None, kre_pos = 0, kre_endpos = None, 
-            lin2syl_mapping = None, linear = None, Match=None):
+            string = None, kre = None, lin2syl_map = None, 
+            linear = None, Match=None):
        
         self.endpos =  endpos # int; last index pos==len(self.string)
         self.lastgroup = lastgroup
@@ -93,16 +93,17 @@ class KRE_Match:
         self.re = re #SRE_Pattern
         self.regs = regs #tuple
         self.string = string
-        self.Match = Match # a re.Match object
+
+        # underlying re.Match object 
+        # contains same attributes as above but for linearized string
+        self.Match = Match 
    
         #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
         self.kre = kre #modified KRE_Pattern
-        self.kre_endpos = kre_endpos
-        self.kre_pos = kre_pos
         self.linear = linear
 
         # Following maps linear indices to original string indices
-        self.lin2syl_mapping = lin2syl_mapping
+        self.lin2syl_map = lin2syl_map
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
@@ -200,63 +201,20 @@ class KRE_Match:
 
 ### Public interface
 
-def kre_pattern_string(func):
-    """
-    Decorator for re module which adds additional search options for the
-    Korean language
-
-    Args:
-        funct: a re function
-
-        Note that the wrapper function accepts keyword arguments not
-        present in the re module. These keywords are passed in with the 
-        function itselt, but they are removed from kwargs prior to 
-        passing kwargs on to the re function.
-
-    Returns:
-        kre_object or None: a kre_object containing the search result,
-            or None if no result was found
-    """
-
-    def wrapper(*args, **kwargs):
-        # Set default values of extra kwargs
-        kre_kwargs = {'boundaries': False, 'delimiter': ';'}
-
-        # Pop kwargs specific to kre
-        for key in kre_kwargs.keys():
-            if key in kwargs:
-                kre_kwargs[key] = kwargs.pop(key)
-       
-        # Linearize the pattern and string
-        lp = _Linear(args[0]) # pattern boundaries always false
-        ls = _Linear(args[1], boundaries=kre_kwargs['boundaries'],
-                delimiter=kre_kwargs['delimiter'],)
-
-        # Run the re function on the linearized pattern and string
-        match_ = func(lp.linear, ls.linear, **kwargs)
-
-        # If a re.Match object was returned, construct and a KRE_Match 
-        # object and return the KRE_Match object
-        if match_:
-            return _make_match_object(args[0], args[1], match_,
-                    boundaries=kre_kwargs['boundaries'],
-                    delimiter=kre_kwargs['delimiter'],
-                    )
-
-        else:
-            return match_
-    return wrapper
 
 def search(pattern, string, flags=0, boundaries=False, delimiter=';'):
-    return compile(pattern, flags).search(string, boundaries=boundaries,
+    return compile(pattern, flags).search(string, 
+            boundaries=boundaries,
             delimiter=delimiter)
 
 def match(pattern, string, flags=0, boundaries=False, delimiter=';'):
-    return compile(pattern, flags).match(string, boundaries=boundaries,
+    return compile(pattern, flags).match(string, 
+            boundaries=boundaries,
             delimiter=delimiter)
 
 def fullmatch(pattern, string, flags=0, boundaries=False, delimiter=';'):
-    return compile(pattern, flags).fullmatch(string, boundaries=boundaries,
+    return compile(pattern, flags).fullmatch(string, 
+            boundaries=boundaries,
             delimiter=delimiter)
 
 def sub(pattern, repl, string, count=0, flags=0, boundaries=False, 
@@ -273,29 +231,34 @@ def sub(pattern, repl, string, count=0, flags=0, boundaries=False,
         'extended' (will attempt to combine affected characters with
             preceding/following characters to create syllables)
     """
-    return compile(pattern, flags).sub(repl, string, count,
-            boundaries, delimiter, syllabify)
-
+    return compile(pattern, flags).sub(repl, string, count=count,
+            boundaries=boundaries, 
+            delimiter=delimiter, 
+            syllabify=syllabify)
 
 def subn(pattern, repl, string, count=0, flags=0, boundaries=False, 
         delimiter=';', syllabify='extended'):
     """
     Similar to sub(), but returns tuple with count as second element.
     """
-    return compile(pattern, flags).subn(repl, string, count, boundaries,
-            delimiter, syllabify)
+    return compile(pattern, flags).subn(repl, string, count=count, 
+            boundaries=boundaries,
+            delimiter=delimiter, 
+            syllabify=syllabify)
 
 def split(pattern, string, maxsplit=0, flags=0, boundaries=False, 
         delimiter=';'):
-    pass
+    return compile(pattern, flags).split(string, maxsplit=maxsplit, 
+            boundaries=boundaries, delimiter=delimiter)
 
 def findall(pattern, string, flags=0, boundaries=False, delimiter=';'):
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.findall()
     """
-    return compile(pattern, flags).findall(string, boundaries,
-            delimiter)
+    return compile(pattern, flags).findall(string, 
+            boundaries=boundaries,
+            delimiter=delimiter)
 
 def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
     """
@@ -305,8 +268,9 @@ def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
 
         returns list_iterator rather than callable iterator (see TODOs)
     """
-    return compile(pattern, flags).finditer(string, boundaries,
-            delimiter)
+    return compile(pattern, flags).finditer(string, 
+            boundaries=boundaries,
+            delimiter=dilimiter)
 
 def compile(pattern, flags=0):
     """
@@ -345,11 +309,11 @@ class KRE_Pattern:
         self.groupindex = self.Pattern.groupindex
 
     def search(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, 
-                delimiter=delimiter)
+        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.search(ls.linear, *args)
         if match_:
             return _make_match_object(self.original, string, match_,
+                    *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
@@ -357,11 +321,11 @@ class KRE_Pattern:
             return match_
 
     def match(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, 
-                delimiter=delimiter)
+        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.match(ls.linear, *args)
         if match_:
             return _make_match_object(self.original, string, match_,
+                    *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
@@ -370,11 +334,11 @@ class KRE_Pattern:
         return re.match(*args, **kwargs)
 
     def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, 
-                delimiter=delimiter)
+        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.fullmatch(ls.linear, *args)
         if match_:
             return _make_match_object(self.original, string, match_,
+                    *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
@@ -521,14 +485,14 @@ class KRE_Pattern:
         """
         kre modification: source string and pattern are linearized prior to 
         calling re.split()"""
-        pass
+        raise NotImplementedError 
 
-    def findall(self, string, boundaries=False, delimiter=';'):
+    def findall(self, string, *args, boundaries=False, delimiter=';'):
         # Run re function on linearized pattern and linearized string
         ls = _Linear(string, boundaries=boundaries,
                 delimiter=delimiter)
         
-        match_ = self.Pattern.findall(ls.linear, self.flags)
+        match_ = self.Pattern.findall(ls.linear, *args)
 
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
@@ -547,7 +511,7 @@ class KRE_Pattern:
         else:
             return None
 
-    def finditer(self, string, boundaries=False, delimiter=';'):
+    def finditer(self, string, *args, boundaries=False, delimiter=';'):
         """
         kre modifications: 
             source string and pattern are linearized prior to calling 
@@ -560,7 +524,7 @@ class KRE_Pattern:
         ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
 
-        match_ = self.Pattern.finditer(ls.linear, self.flags)
+        match_ = self.Pattern.finditer(ls.linear, *args)
 
         # For all re.Match objects in match_
         if match_:
@@ -569,7 +533,7 @@ class KRE_Pattern:
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
                 match_list.append(_make_match_object(self.original, string, 
-                    sub_match))
+                    sub_match, *args))
                 pos = sub_match.span()[1]
             return iter(match_list)
         else:
@@ -690,7 +654,7 @@ def _get_span(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
     
     return (span_start, span_end)
 
-def _make_match_object(pattern, string, Match, boundaries=False, 
+def _make_match_object(pattern, string, Match, *args, boundaries=False, 
         delimiter=';'):
     """
     Instantiates a KRE_Match object
@@ -703,7 +667,13 @@ def _make_match_object(pattern, string, Match, boundaries=False,
     Returns:
         KRE_Match object
     """
-  
+
+    # Extract pos, endpos args, if provised
+    pos_args = [0, len(string)] # re defaults
+    if args:
+        for n, arg in enumerate(args):
+            pos_args[n] = arg
+
     ls = _Linear(string, boundaries, delimiter)
     lp = _Linear(pattern)
     match_obj = KRE_Match(
@@ -711,9 +681,11 @@ def _make_match_object(pattern, string, Match, boundaries=False,
             re = re.compile(pattern), 
             string = string, 
             linear = ls.linear,
+            pos = pos_args[0],
+            endpos = pos_args[1],
             regs = _get_regs(Match, ls.lin2syl_map, boundaries,
                 delimiter),
-            lin2syl_mapping = ls.lin2syl_map,
+            lin2syl_map = ls.lin2syl_map,
             Match = Match,
             )
     return match_obj 
