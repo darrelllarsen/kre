@@ -40,7 +40,7 @@ even if the search string is entered as a syllabary (e.g. 일 rather
 than ㅇㅣㄹ).  Thus, a search for 'ㅣㄹ' will match both '일' and
 '이라'.  To track boundaries, set boundaries=True.  The default 
 boundary symbol is the semicolon <;> and may be changed using 
-boundary_symbol=new_symbol.
+delimiter=new_symbol.
 
 
 TODO:
@@ -223,7 +223,7 @@ def kre_pattern_string(func):
     def wrapper(*args, **kwargs):
         # Set default values of extra kwargs
         kre_kwargs = {'boundaries': False,
-                'boundary_marker': ';',
+                'delimiter': ';',
                 }
 
         # Pop kwargs specific to kre
@@ -234,7 +234,7 @@ def kre_pattern_string(func):
         # Linearize the pattern and string
         kre_pattern = _KREString(args[0]) # pattern boundaries always false
         kre_string = _KREString(args[1], boundaries=kre_kwargs['boundaries'],
-                boundary_marker=kre_kwargs['boundary_marker'],)
+                delimiter=kre_kwargs['delimiter'],)
 
         # Run the re function on the linearized pattern and string
         response = func(kre_pattern.lin_string, kre_string.lin_string, **kwargs)
@@ -244,7 +244,7 @@ def kre_pattern_string(func):
         if response:
             return _make_match_object(args[0], args[1], response,
                     boundaries=kre_kwargs['boundaries'],
-                    boundary_marker=kre_kwargs['boundary_marker'],
+                    delimiter=kre_kwargs['delimiter'],
                     )
 
         else:
@@ -252,24 +252,24 @@ def kre_pattern_string(func):
     return wrapper
 
 def search(pattern, string, flags=0, 
-        boundaries=False, boundary_marker=';'):
+        boundaries=False, delimiter=';'):
     return compile(pattern, flags).search(string, boundaries=boundaries,
-            boundary_marker=boundary_marker)
+            delimiter=delimiter)
 
 def match(pattern, string, flags=0, 
-        boundaries=False, boundary_marker=';'):
+        boundaries=False, delimiter=';'):
     return compile(pattern, flags).match(string, boundaries=boundaries,
-            boundary_marker=boundary_marker)
+            delimiter=delimiter)
 
 def fullmatch(pattern, string, flags=0, 
-        boundaries=False, boundary_marker=';'):
+        boundaries=False, delimiter=';'):
     return compile(pattern, flags).fullmatch(string, boundaries=boundaries,
-            boundary_marker=boundary_marker)
+            delimiter=delimiter)
 
 def sub(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        boundary_marker=';', syllabify='extended'):
+        delimiter=';', syllabify='extended'):
     return compile(pattern, flags).sub(repl, string, count,
-            boundaries, boundary_marker, syllabify)
+            boundaries, delimiter, syllabify)
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.subn()
@@ -308,7 +308,7 @@ def sub(pattern, repl, string, count=0, flags=0, boundaries=False,
     kre_pattern, p_map = _linearize(pattern)
     kre_string, s_map = _linearize(string, 
             boundaries=boundaries,
-            boundary_marker=boundary_marker,
+            delimiter=delimiter,
                 )
     
     # Get a mapping from letters to the indices of the start and end of
@@ -409,48 +409,48 @@ def sub(pattern, repl, string, count=0, flags=0, boundaries=False,
     """
 
 def subn(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        boundary_marker=';', syllabify='extended'):
+        delimiter=';', syllabify='extended'):
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.subn()
     count = len(findall(pattern, string, flags=flags,
-        boundaries=boundaries, boundary_marker=boundary_marker))
+        boundaries=boundaries, delimiter=delimiter))
 
     return (sub(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        boundary_marker=';', syllabify=syllabify), count)
+        delimiter=';', syllabify=syllabify), count)
     """
     return compile(pattern, flags).subn(repl, string, count, boundaries,
-            boundary_marker, syllabify)
+            delimiter, syllabify)
 
 def split(pattern, string, maxsplit=0, flags=0, boundaries=False, 
-        boundary_marker=';'):
+        delimiter=';'):
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.split()"""
     pass
 
 def findall(pattern, string, flags=0, boundaries=False, 
-        boundary_marker=';'):
+        delimiter=';'):
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.findall()
 
     # Run re function on linearized pattern and linearized string
     match_ = re.findall(_linearize(pattern)[0], 
-            _linearize(string, boundaries, boundary_marker)[0], flags)
+            _linearize(string, boundaries, delimiter)[0], flags)
 
     # For all patterns found, find their position in the original text
     # and return the syllable(s) they are part of
     if match_:
         regex = re.compile(_linearize(pattern)[0])
         linearized_string, lin2syl_mapping = _linearize(string, 
-                boundaries, boundary_marker)
+                boundaries, delimiter)
         pos = 0 
         match_list = []
         for item in match_:
             sub_match = regex.search(linearized_string, pos)
             source_string_span = _get_span(sub_match, lin2syl_mapping,
-                    boundaries, boundary_marker)
+                    boundaries, delimiter)
             match_list.append(
                     string[source_string_span[0]:source_string_span[1]]
                     )
@@ -460,10 +460,10 @@ def findall(pattern, string, flags=0, boundaries=False,
         return None
     """
     return compile(pattern, flags).findall(string, boundaries,
-            boundary_marker)
+            delimiter)
 
 def finditer(pattern, string, flags=0, boundaries=False, 
-        boundary_marker=';'):
+        delimiter=';'):
     """
     kre modifications: 
         source string and pattern are linearized prior to calling 
@@ -475,13 +475,13 @@ def finditer(pattern, string, flags=0, boundaries=False,
 
     # Run re function on linearized pattern and linearized string
     match_ = re.finditer(_linearize(pattern)[0], _linearize(string, 
-        boundaries, boundary_marker)[0], flags)
+        boundaries, delimiter)[0], flags)
 
     # For all re.Match objects in 
     if match_:
         regex = re.compile(_linearize(pattern)[0])
         linearized_string, lin2syl_mapping = _linearize(string, 
-                boundaries, boundary_marker)
+                boundaries, delimiter)
         pos = 0 
         match_list = []
         for item in match_:
@@ -494,7 +494,7 @@ def finditer(pattern, string, flags=0, boundaries=False,
         return None
     """
     return compile(pattern, flags).finditer(string, boundaries,
-            boundary_marker)
+            delimiter)
 
 def compile(pattern, flags=0):
     """
@@ -532,45 +532,45 @@ class KRE_Pattern:
         self.groups = self.Pattern.groups
         self.groupindex = self.Pattern.groupindex
 
-    def search(self, string, *args, boundaries=False, boundary_marker=';'):
+    def search(self, string, *args, boundaries=False, delimiter=';'):
         kre_string = _KREString(string, boundaries=boundaries, 
-                boundary_marker=boundary_marker)
+                delimiter=delimiter)
         response = self.Pattern.search(kre_string.lin_string, *args)
         if response:
             return _make_match_object(self.kre_pattern, string, response,
                     boundaries=boundaries,
-                    boundary_marker=boundary_marker,
+                    delimiter=delimiter,
                     )
         else:
             return response
 
-    def match(self, string, *args, boundaries=False, boundary_marker=';'):
+    def match(self, string, *args, boundaries=False, delimiter=';'):
         kre_string = _KREString(string, boundaries=boundaries, 
-                boundary_marker=boundary_marker)
+                delimiter=delimiter)
         response = self.Pattern.match(kre_string.lin_string, *args)
         if response:
             return _make_match_object(self.kre_pattern, string, response,
                     boundaries=boundaries,
-                    boundary_marker=boundary_marker,
+                    delimiter=delimiter,
                     )
         else:
             return response
         return re.match(*args, **kwargs)
 
-    def fullmatch(self, string, *args, boundaries=False, boundary_marker=';'):
+    def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
         kre_string = _KREString(string, boundaries=boundaries, 
-                boundary_marker=boundary_marker)
+                delimiter=delimiter)
         response = self.Pattern.fullmatch(kre_string.lin_string, *args)
         if response:
             return _make_match_object(self.kre_pattern, string, response,
                     boundaries=boundaries,
-                    boundary_marker=boundary_marker,
+                    delimiter=delimiter,
                     )
         else:
             return response
 
     def sub(self, repl, string, count=0, boundaries=False, 
-            boundary_marker=';', syllabify='extended'):
+            delimiter=';', syllabify='extended'):
         """
         kre modification: source string and pattern are linearized prior to 
         calling re.subn()
@@ -589,7 +589,7 @@ class KRE_Pattern:
         # Linearize string
         kre_string = _KREString(string, 
                 boundaries=boundaries,
-                boundary_marker=boundary_marker,
+                delimiter=delimiter,
                     )
 
         lin_string = kre_string.lin_string
@@ -603,7 +603,7 @@ class KRE_Pattern:
 
         # Find the spans where substitutions will occur.
         matches = self.finditer(lin_string,
-                boundaries=boundaries, boundary_marker=boundary_marker)
+                boundaries=boundaries, delimiter=delimiter)
 
         # Iterate over matches to extract subbed spans from original string
         subs = dict()
@@ -693,29 +693,29 @@ class KRE_Pattern:
         return output
 
     def subn(self, repl, string, count=0, boundaries=False, 
-            boundary_marker=';', syllabify='extended'):
+            delimiter=';', syllabify='extended'):
         """
         kre modification: source string and pattern are linearized prior to 
         calling re.subn()
         """
         count = len(self.findall(string,
-            boundaries=boundaries, boundary_marker=boundary_marker))
+            boundaries=boundaries, delimiter=delimiter))
 
         return (self.sub(repl, string, count=0, boundaries=False, 
-            boundary_marker=';', syllabify=syllabify), count)
+            delimiter=';', syllabify=syllabify), count)
 
 
     def split(self, string, maxsplit=0, boundaries=False, 
-            boundary_marker=';'):
+            delimiter=';'):
         """
         kre modification: source string and pattern are linearized prior to 
         calling re.split()"""
         pass
 
-    def findall(self, string, boundaries=False, boundary_marker=';'):
+    def findall(self, string, boundaries=False, delimiter=';'):
         # Run re function on linearized pattern and linearized string
         kre_string = _KREString(string, boundaries=boundaries,
-                boundary_marker=boundary_marker)
+                delimiter=delimiter)
         
         match_ = self.Pattern.findall(kre_string.lin_string, self.flags)
 
@@ -729,7 +729,7 @@ class KRE_Pattern:
                 source_string_span = _get_span(sub_match, 
                         kre_string.lin2syl_map, 
                         boundaries, 
-                        boundary_marker)
+                        delimiter)
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
@@ -738,7 +738,7 @@ class KRE_Pattern:
         else:
             return None
 
-    def finditer(self, string, boundaries=False, boundary_marker=';'):
+    def finditer(self, string, boundaries=False, delimiter=';'):
         """
         kre modifications: 
             source string and pattern are linearized prior to calling 
@@ -749,7 +749,7 @@ class KRE_Pattern:
 
         #Implementation differs from re.finditer
         kre_string = _KREString(string, 
-                boundaries=boundaries, boundary_marker=boundary_marker)
+                boundaries=boundaries, delimiter=delimiter)
 
         match_ = self.Pattern.finditer(kre_string.lin_string,
                 self.flags)
@@ -768,9 +768,9 @@ class KRE_Pattern:
             return None
 
 class _KREString:
-    def __init__(self, string, boundaries=False, boundary_marker=';'):
+    def __init__(self, string, boundaries=False, delimiter=';'):
         self.boundaries = boundaries
-        self.boundary_marker = boundary_marker
+        self.delimiter = delimiter
         self.string = string
         self.lin_string, self.lin2syl_map = self._linearize()
         self.syl_span_map = self._get_syl_span_map()
@@ -802,7 +802,7 @@ class _KREString:
                 
                 # add boundary symbol in front of Korean syllable
                 if self.boundaries==True and not just_saw_boundary:
-                    linearized_str += self.boundary_marker
+                    linearized_str += self.delimiter
                     lin2syl_mapping.append(linear_index)
 
                 # append the linearized string
@@ -812,7 +812,7 @@ class _KREString:
 
                 # add boundary symbol at end of Korean syllable
                 if self.boundaries==True:
-                    linearized_str += self.boundary_marker
+                    linearized_str += self.delimiter
                     lin2syl_mapping.append(linear_index)
                 
                 linear_index += 1
@@ -821,7 +821,7 @@ class _KREString:
                 linearized_str += char_
                 lin2syl_mapping.append(linear_index)
                 linear_index += 1
-            just_saw_boundary = (linearized_str[-1] == self.boundary_marker)
+            just_saw_boundary = (linearized_str[-1] == self.delimiter)
 
         return (linearized_str, lin2syl_mapping)
 
@@ -852,7 +852,7 @@ class _KREString:
         return self.get_syl_span(idx)[1]
 
 
-def _linearize(string, boundaries=False, boundary_marker=';'):
+def _linearize(string, boundaries=False, delimiter=';'):
     """
     Linearizes input string by splitting up Korean syllables into 
     individual Korean letters.
@@ -880,7 +880,7 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
             
             # add boundary symbol in front of Korean syllable
             if boundaries==True and not just_saw_boundary:
-                linearized_str += boundary_marker
+                linearized_str += delimiter
                 lin2syl_mapping.append(linear_index)
 
             # append the linearized string
@@ -890,7 +890,7 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
 
             # add boundary symbol at end of Korean syllable
             if boundaries==True:
-                linearized_str += boundary_marker
+                linearized_str += delimiter
                 lin2syl_mapping.append(linear_index)
             
             linear_index += 1
@@ -899,11 +899,11 @@ def _linearize(string, boundaries=False, boundary_marker=';'):
             linearized_str += char_
             lin2syl_mapping.append(linear_index)
             linear_index += 1
-        just_saw_boundary = (linearized_str[-1] == boundary_marker)
+        just_saw_boundary = (linearized_str[-1] == delimiter)
 
     return (linearized_str, lin2syl_mapping)
 
-def _get_span(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
+def _get_span(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
     """
     Map the index positions of the match to their corresponding 
     positions in the source text
@@ -918,7 +918,7 @@ def _get_span(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
     """
 
     span_index = list(Match.span())
-    if boundaries == True and Match.group(0)[0] == boundary_marker:
+    if boundaries == True and Match.group(0)[0] == delimiter:
         span_start = lin2syl_mapping[span_index[0]+1]
     else:
         span_start = lin2syl_mapping[span_index[0]]
@@ -927,7 +927,7 @@ def _get_span(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
     # so, we need to subtract one to get the index of the character 
     # to map back to the original, then add one to the result to 
     # get the index after this character
-    if boundaries == True and Match.group(0)[-1] == boundary_marker:
+    if boundaries == True and Match.group(0)[-1] == delimiter:
         span_end = lin2syl_mapping[span_index[1]-2] + 1
     else:
         span_end = lin2syl_mapping[span_index[1]-1] + 1
@@ -935,7 +935,7 @@ def _get_span(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
     return (span_start, span_end)
 
 def _make_match_object(pattern, string, Match, boundaries=False, 
-        boundary_marker=';'):
+        delimiter=';'):
     """
     Instantiates a KRE_Match object
 
@@ -948,7 +948,7 @@ def _make_match_object(pattern, string, Match, boundaries=False,
         KRE_Match object
     """
   
-    ks = _KREString(string, boundaries, boundary_marker)
+    ks = _KREString(string, boundaries, delimiter)
     kp = _KREString(pattern)
     match_obj = KRE_Match(
             kre = re.compile(kp.lin_string), 
@@ -956,13 +956,13 @@ def _make_match_object(pattern, string, Match, boundaries=False,
             string = string, 
             kre_string = ks.lin_string,
             regs = _get_regs(Match, ks.lin2syl_map, boundaries,
-                boundary_marker),
+                delimiter),
             lin2syl_mapping = ks.lin2syl_map,
             Match = Match,
             )
     return match_obj 
 
-def _get_regs(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
+def _get_regs(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
     # TODO: update doc; remove _get_span and replace with this
     # eventually
     """
@@ -984,7 +984,7 @@ def _get_regs(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
         if span == (-1, -1):
             regs.append(span)
             continue
-        elif boundaries == True and Match.group(n)[0] == boundary_marker:
+        elif boundaries == True and Match.group(n)[0] == delimiter:
             span_start = lin2syl_mapping[span[0]+1]
         else:
             span_start = lin2syl_mapping[span[0]]
@@ -993,7 +993,7 @@ def _get_regs(Match, lin2syl_mapping, boundaries=False, boundary_marker=';'):
         # so, we need to subtract one to get the index of the character 
         # to map back to the original, then add one to the result to 
         # get the index after this character
-        if boundaries == True and Match.group(n)[-1] == boundary_marker:
+        if boundaries == True and Match.group(n)[-1] == delimiter:
             span_end = lin2syl_mapping[span[1]-2] + 1
         else:
             span_end = lin2syl_mapping[span[1]-1] + 1
