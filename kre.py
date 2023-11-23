@@ -229,12 +229,12 @@ def kre_pattern_string(func):
                 kre_kwargs[key] = kwargs.pop(key)
        
         # Linearize the pattern and string
-        kp = _KREString(args[0]) # pattern boundaries always false
-        ks = _KREString(args[1], boundaries=kre_kwargs['boundaries'],
+        lp = _Linear(args[0]) # pattern boundaries always false
+        ls = _Linear(args[1], boundaries=kre_kwargs['boundaries'],
                 delimiter=kre_kwargs['delimiter'],)
 
         # Run the re function on the linearized pattern and string
-        response = func(kp.linear, ks.linear, **kwargs)
+        response = func(lp.linear, ls.linear, **kwargs)
 
         # If a re.Match object was returned, construct and a KRE_Match 
         # object and return the KRE_Match object
@@ -340,15 +340,15 @@ class KRE_Pattern:
     def __init__(self, pattern, flags):
         self.original = pattern #original Korean, unlinearized
         self.flags = flags
-        self.pattern = _KREString(pattern).linear #linear input to compile
+        self.pattern = _Linear(pattern).linear #linear input to compile
         self.Pattern = re.compile(self.pattern, flags) # re.Pattern obj
         self.groups = self.Pattern.groups
         self.groupindex = self.Pattern.groupindex
 
     def search(self, string, *args, boundaries=False, delimiter=';'):
-        ks = _KREString(string, boundaries=boundaries, 
+        ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.search(ks.linear, *args)
+        response = self.Pattern.search(ls.linear, *args)
         if response:
             return _make_match_object(self.original, string, response,
                     boundaries=boundaries,
@@ -358,9 +358,9 @@ class KRE_Pattern:
             return response
 
     def match(self, string, *args, boundaries=False, delimiter=';'):
-        ks = _KREString(string, boundaries=boundaries, 
+        ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.match(ks.linear, *args)
+        response = self.Pattern.match(ls.linear, *args)
         if response:
             return _make_match_object(self.original, string, response,
                     boundaries=boundaries,
@@ -371,9 +371,9 @@ class KRE_Pattern:
         return re.match(*args, **kwargs)
 
     def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
-        ks = _KREString(string, boundaries=boundaries, 
+        ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.fullmatch(ks.linear, *args)
+        response = self.Pattern.fullmatch(ls.linear, *args)
         if response:
             return _make_match_object(self.original, string, response,
                     boundaries=boundaries,
@@ -400,21 +400,21 @@ class KRE_Pattern:
                 preceding/following characters to create syllables)
         """
         # Linearize string
-        ks = _KREString(string, 
+        ls = _Linear(string, 
                 boundaries=boundaries,
                 delimiter=delimiter,
                     )
 
-        s_map = ks.lin2syl_map
+        s_map = ls.lin2syl_map
 
         
         # Get a mapping from letters to the indices of the start and end of
         # the linearized syllable in which they originally appeared.
-        syl_span_map = ks.syl_span_map
+        syl_span_map = ls.syl_span_map
 
 
         # Find the spans where substitutions will occur.
-        matches = self.finditer(ks.linear,
+        matches = self.finditer(ls.linear,
                 boundaries=boundaries, delimiter=delimiter)
 
         # Iterate over matches to extract subbed spans from original string
@@ -433,10 +433,10 @@ class KRE_Pattern:
             sub = subs[n]
             start = sub['unmapped_span'][0]
             end = sub['unmapped_span'][1]
-            extra_start = start - ks.get_syl_start(start)
-            extra_end = ks.get_syl_end(end-1) - end
-            pre_sub_letters = ks.linear[start - extra_start:start]
-            post_sub_letters = ks.linear[end:end + extra_end]
+            extra_start = start - ls.get_syl_start(start)
+            extra_end = ls.get_syl_end(end-1) - end
+            pre_sub_letters = ls.linear[start - extra_start:start]
+            post_sub_letters = ls.linear[end:end + extra_end]
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
 
         # Extract the text from the unchanged indices so we can return them
@@ -453,10 +453,10 @@ class KRE_Pattern:
         # Carry out substitutions one by one to identify the indices of each 
         # changed section. 
         extra = 0
-        prev_string = ks.linear
+        prev_string = ls.linear
         for n in range(len(subs)):
             sub = subs[n]
-            subbed_string = self.Pattern.sub(repl, ks.linear, count=n+1)
+            subbed_string = self.Pattern.sub(repl, ls.linear, count=n+1)
 
             # Calculate the start and end indices of the inserted substitution
             sub_start = sub['unmapped_span'][0] + extra
@@ -481,7 +481,7 @@ class KRE_Pattern:
                 if syllabify == 'minimal': 
                     output += KO.syllabify(new_text)
                 elif syllabify == 'extended':
-                    new_text = _KREString(new_text).linear
+                    new_text = _Linear(new_text).linear
                     if safe_text[n+1]:
                         post = safe_text[n+1][0]
                         safe_text[n+1] = safe_text[n+1][1:]
@@ -498,7 +498,7 @@ class KRE_Pattern:
                 else:
                     output += new_text
         if syllabify == 'full':
-            output = KO.syllabify(_KREString(output).linear)
+            output = KO.syllabify(_Linear(output).linear)
         if syllabify == 'none':
             pass
 
@@ -526,10 +526,10 @@ class KRE_Pattern:
 
     def findall(self, string, boundaries=False, delimiter=';'):
         # Run re function on linearized pattern and linearized string
-        ks = _KREString(string, boundaries=boundaries,
+        ls = _Linear(string, boundaries=boundaries,
                 delimiter=delimiter)
         
-        match_ = self.Pattern.findall(ks.linear, self.flags)
+        match_ = self.Pattern.findall(ls.linear, self.flags)
 
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
@@ -537,9 +537,9 @@ class KRE_Pattern:
             pos = 0 
             match_list = []
             for item in match_:
-                sub_match = self.search(ks.linear, pos)
+                sub_match = self.search(ls.linear, pos)
                 source_string_span = _get_span(sub_match, 
-                        ks.lin2syl_map, boundaries, delimiter)
+                        ls.lin2syl_map, boundaries, delimiter)
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
@@ -558,17 +558,17 @@ class KRE_Pattern:
         """
 
         #Implementation differs from re.finditer
-        ks = _KREString(string, boundaries=boundaries, 
+        ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
 
-        match_ = self.Pattern.finditer(ks.linear, self.flags)
+        match_ = self.Pattern.finditer(ls.linear, self.flags)
 
         # For all re.Match objects in match_
         if match_:
             pos = 0 
             match_list = []
             for item in match_:
-                sub_match = self.search(ks.linear, pos)
+                sub_match = self.search(ls.linear, pos)
                 match_list.append(_make_match_object(self.original, string, 
                     sub_match))
                 pos = sub_match.span()[1]
@@ -576,7 +576,7 @@ class KRE_Pattern:
         else:
             return None
 
-class _KREString:
+class _Linear:
     def __init__(self, string, boundaries=False, delimiter=';'):
         self.boundaries = boundaries
         self.delimiter = delimiter
@@ -705,16 +705,16 @@ def _make_match_object(pattern, string, Match, boundaries=False,
         KRE_Match object
     """
   
-    ks = _KREString(string, boundaries, delimiter)
-    kp = _KREString(pattern)
+    ls = _Linear(string, boundaries, delimiter)
+    lp = _Linear(pattern)
     match_obj = KRE_Match(
-            kre = re.compile(kp.linear), 
+            kre = re.compile(lp.linear), 
             re = re.compile(pattern), 
             string = string, 
-            linear = ks.linear,
-            regs = _get_regs(Match, ks.lin2syl_map, boundaries,
+            linear = ls.linear,
+            regs = _get_regs(Match, ls.lin2syl_map, boundaries,
                 delimiter),
-            lin2syl_mapping = ks.lin2syl_map,
+            lin2syl_mapping = ls.lin2syl_map,
             Match = Match,
             )
     return match_obj 
