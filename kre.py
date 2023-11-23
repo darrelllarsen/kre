@@ -348,6 +348,7 @@ class KRE_Pattern:
     def sub(self, repl, string, count=0, boundaries=False, 
             delimiter=';', syllabify='extended'):
         """
+        TODO: limit number of substitions to count
         kre modification: source string and pattern are linearized prior to 
         calling re.subn()
 
@@ -380,9 +381,13 @@ class KRE_Pattern:
         matches = self.finditer(ls.linear,
                 boundaries=boundaries, delimiter=delimiter)
 
+
         # Iterate over matches to extract subbed spans from original string
         subs = dict()
         for n, match_ in enumerate(matches):
+            # limit matches to number indicated by count (0=no limit)
+            if 0 < count <= n:
+                break
             subs[n] = dict()
             sub = subs[n]
             span = match_.span()
@@ -473,11 +478,15 @@ class KRE_Pattern:
         kre modification: source string and pattern are linearized prior to 
         calling re.subn()
         """
-        count = len(self.findall(string,
+        
+        # Must limit substitutions to max of count if != 0
+        sub_count = len(self.findall(string,
             boundaries=boundaries, delimiter=delimiter))
+        if 0 < count < sub_count:
+            sub_count = count
 
-        return (self.sub(repl, string, count=0, boundaries=False, 
-            delimiter=';', syllabify=syllabify), count)
+        return (self.sub(repl, string, count=count, boundaries=False, 
+            delimiter=';', syllabify=syllabify), sub_count)
 
 
     def split(self, string, maxsplit=0, boundaries=False, 
