@@ -644,7 +644,7 @@ class KRE_Pattern:
         prev_string = lin_string
         for n in range(len(subs)):
             sub = subs[n]
-            subbed_string = re.sub(self.pattern, repl, lin_string, count=n+1)
+            subbed_string = self.Pattern.sub(repl, lin_string, count=n+1)
 
             # Calculate the start and end indices of the inserted substitution
             sub_start = sub['unmapped_span'][0] + extra
@@ -717,8 +717,7 @@ class KRE_Pattern:
         kre_string = _KREString(string, boundaries=boundaries,
                 boundary_marker=boundary_marker)
         
-        match_ = re.findall(self.pattern, 
-                kre_string.lin_string, self.flags)
+        match_ = self.Pattern.findall(kre_string.lin_string, self.flags)
 
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
@@ -750,10 +749,9 @@ class KRE_Pattern:
 
         #Implementation differs from re.finditer
         kre_string = _KREString(string, 
-                boundaries, boundary_marker)
+                boundaries=boundaries, boundary_marker=boundary_marker)
 
-        # Run re function on linearized pattern and linearized string
-        match_ = re.finditer(self.pattern, kre_string.lin_string,
+        match_ = self.Pattern.finditer(kre_string.lin_string,
                 self.flags)
 
         # For all re.Match objects in match_
