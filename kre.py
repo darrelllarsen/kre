@@ -143,7 +143,6 @@ class KRE_Match:
         Return subgroup(s) of the match by indices or names.
         For 0 returns the entire match.
         """
-        response = []
         if not args:
             args = [0,]
         res = [self.string[self.span(arg)[0]:self.span(arg)[1]] or None 
@@ -234,18 +233,18 @@ def kre_pattern_string(func):
                 delimiter=kre_kwargs['delimiter'],)
 
         # Run the re function on the linearized pattern and string
-        response = func(lp.linear, ls.linear, **kwargs)
+        match_ = func(lp.linear, ls.linear, **kwargs)
 
         # If a re.Match object was returned, construct and a KRE_Match 
         # object and return the KRE_Match object
-        if response:
-            return _make_match_object(args[0], args[1], response,
+        if match_:
+            return _make_match_object(args[0], args[1], match_,
                     boundaries=kre_kwargs['boundaries'],
                     delimiter=kre_kwargs['delimiter'],
                     )
 
         else:
-            return response
+            return match_
     return wrapper
 
 def search(pattern, string, flags=0, boundaries=False, delimiter=';'):
@@ -348,39 +347,39 @@ class KRE_Pattern:
     def search(self, string, *args, boundaries=False, delimiter=';'):
         ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.search(ls.linear, *args)
-        if response:
-            return _make_match_object(self.original, string, response,
+        match_ = self.Pattern.search(ls.linear, *args)
+        if match_:
+            return _make_match_object(self.original, string, match_,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
         else:
-            return response
+            return match_
 
     def match(self, string, *args, boundaries=False, delimiter=';'):
         ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.match(ls.linear, *args)
-        if response:
-            return _make_match_object(self.original, string, response,
+        match_ = self.Pattern.match(ls.linear, *args)
+        if match_:
+            return _make_match_object(self.original, string, match_,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
         else:
-            return response
+            return match_
         return re.match(*args, **kwargs)
 
     def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
         ls = _Linear(string, boundaries=boundaries, 
                 delimiter=delimiter)
-        response = self.Pattern.fullmatch(ls.linear, *args)
-        if response:
-            return _make_match_object(self.original, string, response,
+        match_ = self.Pattern.fullmatch(ls.linear, *args)
+        if match_:
+            return _make_match_object(self.original, string, match_,
                     boundaries=boundaries,
                     delimiter=delimiter,
                     )
         else:
-            return response
+            return match_
 
     def sub(self, repl, string, count=0, boundaries=False, 
             delimiter=';', syllabify='extended'):
