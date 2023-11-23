@@ -222,9 +222,7 @@ def kre_pattern_string(func):
 
     def wrapper(*args, **kwargs):
         # Set default values of extra kwargs
-        kre_kwargs = {'boundaries': False,
-                'delimiter': ';',
-                }
+        kre_kwargs = {'boundaries': False, 'delimiter': ';'}
 
         # Pop kwargs specific to kre
         for key in kre_kwargs.keys():
@@ -251,18 +249,15 @@ def kre_pattern_string(func):
             return response
     return wrapper
 
-def search(pattern, string, flags=0, 
-        boundaries=False, delimiter=';'):
+def search(pattern, string, flags=0, boundaries=False, delimiter=';'):
     return compile(pattern, flags).search(string, boundaries=boundaries,
             delimiter=delimiter)
 
-def match(pattern, string, flags=0, 
-        boundaries=False, delimiter=';'):
+def match(pattern, string, flags=0, boundaries=False, delimiter=';'):
     return compile(pattern, flags).match(string, boundaries=boundaries,
             delimiter=delimiter)
 
-def fullmatch(pattern, string, flags=0, 
-        boundaries=False, delimiter=';'):
+def fullmatch(pattern, string, flags=0, boundaries=False, delimiter=';'):
     return compile(pattern, flags).fullmatch(string, boundaries=boundaries,
             delimiter=delimiter)
 
@@ -429,8 +424,7 @@ def split(pattern, string, maxsplit=0, flags=0, boundaries=False,
     calling re.split()"""
     pass
 
-def findall(pattern, string, flags=0, boundaries=False, 
-        delimiter=';'):
+def findall(pattern, string, flags=0, boundaries=False, delimiter=';'):
     """
     kre modification: source string and pattern are linearized prior to 
     calling re.findall()
@@ -462,8 +456,7 @@ def findall(pattern, string, flags=0, boundaries=False,
     return compile(pattern, flags).findall(string, boundaries,
             delimiter)
 
-def finditer(pattern, string, flags=0, boundaries=False, 
-        delimiter=';'):
+def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
     """
     kre modifications: 
         source string and pattern are linearized prior to calling 
@@ -727,9 +720,7 @@ class KRE_Pattern:
             for item in match_:
                 sub_match = self.search(kre_string.lin_string, pos)
                 source_string_span = _get_span(sub_match, 
-                        kre_string.lin2syl_map, 
-                        boundaries, 
-                        delimiter)
+                        kre_string.lin2syl_map, boundaries, delimiter)
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
