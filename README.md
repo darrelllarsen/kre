@@ -6,7 +6,7 @@ Tools for working with Korean language text.
 kre.py supplements re.py from the Python Standard Library by allowing the user to perform regular expression searches on Korean text at the level of individual letters by breaking up the standard syllable-based font mapping to a letter-based mapping prior to carrying out the search. It returns a KRE_Match object, a sort of extended RE_Match object which allows the user to obtain match indices based on either the original syllable-structured text or the letter-based text. Function/method and attribute implementation is designed to match that of re.py wherever possible. 
 
 ### Functions
-With the exception of `split`, all public re functions (`search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer`, `compile`, `purge`, `escape`) have been implemented as stand-alone functions. They are not yet callable from a compiled Pattern object.
+With the exception of `split`, all public re functions (`search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer`, `compile`, `purge`, `escape`) have been implemented as stand-alone functions. `search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer` methods are also callable from a compiled `KREPattern` object.
 
 - Supplemental for search/match/find functions are the keyword arguments `boundaries` and `boundary_marker`. These have not yet been implemented with the `sub/subn` functions.
 - Supplemental for the `sub/subn` functions is the keyword argument `syllabify`.
