@@ -302,7 +302,7 @@ def syllabify(text) -> str:
     return output
 
 def split(char, 
-        fill_finals=False, split_coda= False) -> list[str, str, (str)]:
+        fill_finals=False, split_coda=False) -> list[str, str, (str)]:
     """
     Converts a Korean syllable character into a sequence of letters
 
@@ -333,7 +333,15 @@ def split(char,
 
     return output
 
-
+def linearize(text, split_coda=True) -> str:
+    output = ''
+    for char in text:
+        if isSyllable(char):
+            output += ''.join(split(char, fill_finals=False, 
+                    split_coda=split_coda))
+        else:
+            output += char
+    return output
 
 """Section: Tests for Korean input."""
 
