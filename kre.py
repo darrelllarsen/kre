@@ -368,39 +368,41 @@ class KRE_Pattern:
                 boundaries=boundaries,
                 delimiter=delimiter,
                     )
-
-        s_map = ls.lin2syl_map
-
         
-        # Get a mapping from letters to the indices of the start and end of
-        # the linearized syllable in which they originally appeared.
-        syl_span_map = ls.syl_span_map
-
-
         # Find the spans where substitutions will occur.
         matches = self.finditer(ls.linear,
                 boundaries=boundaries, delimiter=delimiter)
 
-
         # Iterate over matches to extract subbed spans from original string
         subs = dict()
+        i = 0 # number non-overlapping sub spans (no increment for shared syllable)
         for n, match_ in enumerate(matches):
             # limit matches to number indicated by count (0=no limit)
             if 0 < count <= n:
                 break
-            subs[n] = dict()
-            sub = subs[n]
             span = match_.span()
-            sub['mapped_span'] = (s_map[span[0]], s_map[span[1]-1]+1)
-            sub['unmapped_span'] = span
-
+            s_start = ls.lin2syl_map[span[0]]
+            s_end = ls.lin2syl_map[span[1]-1]+1
+            if i > 0 and subs[i-1]['original_span'][1] > s_start:
+                subs[i-1]['original_span'] = (
+                        subs[i-1]['original_span'][0], s_end)
+                subs[i-1]['linear_span'] = (
+                        subs[i-1]['linear_span'][0], span[1])
+                subs[i-1]['num_subs'] += 1
+            else:
+                subs[i] = dict()
+                sub = subs[i]
+                sub['num_subs'] = 1
+                sub['original_span'] = (s_start, s_end)
+                sub['linear_span'] = span
+                i += 1
 
         # Keep track of extra letters in the subbed syllables which
         # preceded/followed the actual substitution
         for n in range(len(subs)):
             sub = subs[n]
-            start = sub['unmapped_span'][0]
-            end = sub['unmapped_span'][1]
+            start = sub['linear_span'][0]
+            end = sub['linear_span'][1]
             extra_start = start - ls.get_syl_start(start)
             extra_end = ls.get_syl_end(end-1) - end
             pre_sub_letters = ls.linear[start - extra_start:start]
@@ -414,22 +416,26 @@ class KRE_Pattern:
         # avoid this.) 
         safe_text = []
         for n in range(len(subs) + 1):
-            start = 0 if n == 0 else subs[n-1]['mapped_span'][1]
-            end = len(string) if n == len(subs) else subs[n]['mapped_span'][0]
+            start = 0 if n == 0 else subs[n-1]['original_span'][1]
+            end = len(string) if n == len(subs) else subs[n]['original_span'][0]
             safe_text.append(string[start:end])
 
         # Carry out substitutions one by one to identify the indices of each 
         # changed section. 
         extra = 0
         prev_string = ls.linear
+        num_subs = 0
         for n in range(len(subs)):
             sub = subs[n]
-            subbed_string = self.Pattern.sub(repl, ls.linear, count=n+1)
+            num_subs = num_subs + sub['num_subs']
+            print(num_subs)
+            subbed_string = self.Pattern.sub(repl, ls.linear,
+                    count=num_subs)
 
             # Calculate the start and end indices of the inserted substitution
-            sub_start = sub['unmapped_span'][0] + extra
+            sub_start = sub['linear_span'][0] + extra
             extra += len(subbed_string) - len(prev_string)
-            sub_end = sub['unmapped_span'][1] + extra
+            sub_end = sub['linear_span'][1] + extra
 
             # Combine the substitution with the extra letters
             syl_text = sub['extra_letters'][0]
