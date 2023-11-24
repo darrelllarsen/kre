@@ -15,7 +15,7 @@ With the exception of `split`, all public re functions (`search`, `match`, `full
 The most essential methods and attributes of Match objects have been implemented in the KRE_Match object, along with some supplementary attributes.
 - Currently implemented for KRE_Match objects: `re`, `regs`, `string`, `end`, `group`, `groupdict`, `groups`, `span`, `start`, `__repr__`
 - To be implemented: `endpos`, `pos`, `lastgroup`, `lastindex`, `expand`
-- Supplemental in KRE_Match objects: `Match` (the underlying re.Match object resulting from applying a `re` function to the linearized input string); `lin2syl_mapping`
+- Supplemental in KRE_Match objects: `Match` (the underlying re.Match object resulting from applying a `re` function to the linearized input string)
 
 ### Additional Limitations
 kre works for modern Korean using the current Unicode default for Korean syllables ([Ac00-D7AF](https://www.unicode.org/charts/PDF/UAC00.pdf)). This will not work with other Korean unicode blocks (i.e., syllable characters from those blocks will not be converted to sequences of letters) or older Korean varieties (which contain different characters and allow different combinations).
@@ -152,9 +152,9 @@ print(f"ㄹ.;ㄹ sequences (boundaries=True): {kre.findall('ㄹ.;ㄹ', arirang, 
 print(f";ㄹ.ㄹ; sequences (boundaries=True): {kre.findall(';ㄹ.ㄹ;', arirang, boundaries=True)}")
 > ;ㄹ.ㄹ; sequences (boundaries=True): ['를']
 ```
-The semi-colon was chosen as the default boundary marker because it appears on Korean keyboards (thus is easy to type) yet is not commonly used in Korean writing, and it is not a special character in regular expression. Nonetheless, the boundary marker can be set to any other character by setting `boundary_marker` to a different character. (Using special regular expression characters is not recommended.)
+The semi-colon was chosen as the default boundary marker because it appears on Korean keyboards (thus is easy to type) yet is not commonly used in Korean writing, and it is not a special character in regular expression. Nonetheless, the boundary marker can be set to any other character by setting `delimiter` to a different character. (Using special regular expression characters is not recommended.)
 ```
-print(f"Syllable-final ㄹ: {kre.findall('ㄹ%', arirang, boundaries=True, boundary_marker='%')}")
+print(f"Syllable-final ㄹ: {kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')}")
 > Syllable-final ㄹ: ['를', '발']
 ```
 
