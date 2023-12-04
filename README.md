@@ -26,7 +26,7 @@ As kre is intended to mimic re in most aspects, refer to the [re documentation](
 ```
 import kre
 
-arirang = "아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 임은 십 리도 못가서 발병 난다."
+arirang = "아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다."
 ```
 Find all sequences in which the vowel ㅏ is immediately followed by ㄹ, within or across syllables
 
@@ -44,15 +44,15 @@ print('Matched spans:\n' + '  |  '.join([' '.join([str(res.span()), arirang[res.
   10:리 | 11:요 | 12:. | 13:  | 14:아 | 15:리 | 16:랑 | 17:  | 18:고 |
   19:개 | 20:로 | 21:  | 22:넘 | 23:어 | 24:간 | 25:다 | 26:. | 27:  | 
   28:나 | 29:를 | 30:  | 31:버 | 32:리 | 33:고 | 34:  | 35:가 | 36:시 |
-  37:는 | 38:  | 39:임 | 40:은 | 41:  | 42:십 | 43:  | 44:리 | 45:도 | 
-  46:  | 47:못 | 48:가 | 49:서 | 50:  | 51:발 | 52:병 | 53:  | 54:난 | 55:다 | 56:.
+  37:는 | 38:  | 39:님 | 40:은 | 41:  | 42:십 | 43:리  | 44:도 | 45:  | 
+  46:못 | 47:가 | 48:서 | 49:  | 50:발 | 51:병 | 52:  | 53:난 | 54:다 | 55:.
 >
 > Matched spans:
-> (0, 2) 아리  |  (4, 6) 아리  |  (8, 10) 아라  |  (9, 11) 라리  |  (14, 16) 아리  |  (28, 30) 나를  |  (51, 52) 발
+> (0, 2) 아리  |  (4, 6) 아리  |  (8, 10) 아라  |  (9, 11) 라리  |  (14, 16) 아리  |  (28, 30) 나를  |  (50, 51) 발
 ```
 KRE_Match implements the same methods and attributes as re's Match, with values adjusted to align with the input string. You can also directly access the underlying Match object provided by re, which took the linearized string as input. (Some methods/attributed remain to the implemented.)
 ```
-res = kre.search('이.+?ㅁ', arirang)
+res = kre.search('니.+?ㅁ', arirang)
 print('KRE_Match object:')
 print(f'Input string: {res.string}')
 print(f'Matched span: {res.span()}')
@@ -60,12 +60,12 @@ print('\nre Match object:')
 print(f'Input string: {res.Match.string}')
 print(f'Matched span: {res.Match.span()}')
 > KRE_Match object:
-> Input string: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 임은 십 리도 못가서 발병 난다.
-> Matched span: (39, 48)
+> Input string: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
+> Matched span: (39, 47)
 >
 > re Match object:
-> Input string: ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅏㄹㅣㅇㅛ. ㅇㅏㄹㅣㄹㅏㅇ ㄱㅗㄱㅐㄹㅗ ㄴㅓㅁㅇㅓㄱㅏㄴㄷㅏ. ㄴㅏㄹㅡㄹ ㅂㅓㄹㅣㄱㅗ ㄱㅏㅅㅣㄴㅡㄴ ㅇㅣㅁㅇㅡㄴ ㅅㅣㅂ ㄹㅣㄷㅗ ㅁㅗㅅㄱㅏㅅㅓ ㅂㅏㄹㅂㅕㅇ ㄴㅏㄴㄷㅏ.
-> Matched span: (74, 91)
+> Input string: ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅏㄹㅣㅇㅛ. ㅇㅏㄹㅣㄹㅏㅇ ㄱㅗㄱㅐㄹㅗ ㄴㅓㅁㅇㅓㄱㅏㄴㄷㅏ. ㄴㅏㄹㅡㄹ ㅂㅓㄹㅣㄱㅗ ㄱㅏㅅㅣㄴㅡㄴ ㄴㅣㅁㅇㅡㄴ ㅅㅣㅂㄹㅣㄷㅗ ㅁㅗㅅㄱㅏㅅㅓ ㅂㅏㄹㅂㅕㅇ ㄴㅏㄴㄷㅏ.
+> Matched span: (74, 90)
 ```
 Note that Korean letters entered in syllable format in the *search* pattern can match across syllables. In the example below, '신' matches with 시는 (**ㅅㅣㄴ**ㅡㄴ). To avoid this behavior, set `boundaries=True` (see below).
 ```
@@ -86,7 +86,7 @@ print(f"All vowels between two ㄹ (within/across syllables): {kre.findall('ㄹ[
 
 print(f"All uninterrupted sequences of Korean: {kre.findall('[ㄱ-ㅣ]+', 'not Korean' + arirang + 'not Korean')}")
 > All uninterrupted sequences of Korean: ['아리랑', '아리랑', '아라리요', '아리랑', '고개로', '넘어간다', '나를',
-  '버리고', '가시는', '임은', '십', '리도', '못가서', '발병', '난다']
+  '버리고', '가시는', '님은', '십리도', '못가서', '발병', '난다']
 ```
 
 #### Substitutions
@@ -94,8 +94,8 @@ Let's change the verb endings from the narrative forms to a type of future tense
 ```
 print(f"Original: {arirang}")
 print(f"Revised:  {kre.sub('ㄴ다', 'ㄹ 거예요', arirang)}")
-> Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 임은 십 리도 못가서 발병 난다.
-> Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 임은 십 리도 못가서 발병 날 거예요.
+> Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
+> Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요.
 ```
 When carrying out substitutions in Korean, there is no guarantee that the result will be a sequence that can form a syllable block. There is also no requirement that the input contain only syllable blocks. When performing substitutions, kre allows the user to decide the extent to which kre should attempt to create syllables from the sequences through the keyword argument `syllabify` (options: 'none', 'minimal', 'extended' (default), 'full'). Except for 'full', any non-captured syllable blocks remain unaffected.
 
