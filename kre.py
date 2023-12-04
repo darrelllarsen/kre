@@ -381,19 +381,19 @@ class KRE_Pattern:
             if 0 < count <= n:
                 break
             span = match_.span()
-            s_start = ls.lin2syl_map[span[0]]
-            s_end = ls.lin2syl_map[span[1]-1]+1
-            if i > 0 and subs[i-1]['original_span'][1] > s_start:
+            start = ls.lin2syl_map[span[0]]
+            end = ls.lin2syl_map[span[1]-1]+1
+            if i > 0 and subs[i-1]['original_span'][1] > start:
+                subs[i-1]['num_subs'] += 1
                 subs[i-1]['original_span'] = (
-                        subs[i-1]['original_span'][0], s_end)
+                        subs[i-1]['original_span'][0], end)
                 subs[i-1]['linear_span'] = (
                         subs[i-1]['linear_span'][0], span[1])
-                subs[i-1]['num_subs'] += 1
             else:
                 subs[i] = dict()
                 sub = subs[i]
                 sub['num_subs'] = 1
-                sub['original_span'] = (s_start, s_end)
+                sub['original_span'] = (start, end)
                 sub['linear_span'] = span
                 i += 1
 
@@ -428,7 +428,6 @@ class KRE_Pattern:
         for n in range(len(subs)):
             sub = subs[n]
             num_subs = num_subs + sub['num_subs']
-            print(num_subs)
             subbed_string = self.Pattern.sub(repl, ls.linear,
                     count=num_subs)
 
@@ -683,7 +682,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
         KRE_Match object
     """
 
-    # Extract pos, endpos args, if provised
+    # Extract pos, endpos args, if provided
     pos_args = [0, len(string)] # re defaults
     if args:
         for n, arg in enumerate(args):
