@@ -270,7 +270,7 @@ def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
     """
     return compile(pattern, flags).finditer(string, 
             boundaries=boundaries,
-            delimiter=dilimiter)
+            delimiter=delimiter)
 
 def compile(pattern, flags=0):
     """
