@@ -301,18 +301,24 @@ def _compile(pattern, flags):
 
 class KRE_Pattern:
     def __init__(self, pattern, flags):
-        self.original = pattern #original Korean, unlinearized
+        self.pattern = pattern #original Korean, unlinearized
         self.flags = flags
-        self.pattern = _Linear(pattern).linear #linear input to compile
-        self.Pattern = re.compile(self.pattern, flags) # re.Pattern obj
+        self.linear = _Linear(pattern).linear #linear input to compile
+        self.Pattern = re.compile(self.linear, flags) # re.Pattern obj
         self.groups = self.Pattern.groups
         self.groupindex = self.Pattern.groupindex
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "kre.compile(%s)" % repr(self.pattern)
 
     def search(self, string, *args, boundaries=False, delimiter=';'):
         ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.search(ls.linear, *args)
         if match_:
-            return _make_match_object(self.original, string, match_,
+            return _make_match_object(self.pattern, string, match_,
                     *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
@@ -324,7 +330,7 @@ class KRE_Pattern:
         ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.match(ls.linear, *args)
         if match_:
-            return _make_match_object(self.original, string, match_,
+            return _make_match_object(self.pattern, string, match_,
                     *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
@@ -337,7 +343,7 @@ class KRE_Pattern:
         ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
         match_ = self.Pattern.fullmatch(ls.linear, *args)
         if match_:
-            return _make_match_object(self.original, string, match_,
+            return _make_match_object(self.pattern, string, match_,
                     *args,
                     boundaries=boundaries,
                     delimiter=delimiter,
@@ -546,7 +552,7 @@ class KRE_Pattern:
             match_list = []
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
-                match_list.append(_make_match_object(self.original, string, 
+                match_list.append(_make_match_object(self.pattern, string, 
                     sub_match, *args))
                 pos = sub_match.span()[1]
             return iter(match_list)
