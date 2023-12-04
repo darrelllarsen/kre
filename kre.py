@@ -520,9 +520,10 @@ class KRE_Pattern:
             pos = 0 
             match_list = []
             for item in match_:
-                sub_match = self.search(ls.linear, pos)
-                source_string_span = _get_span(sub_match, 
-                        ls.lin2syl_map, boundaries, delimiter)
+                sub_match = self.search(ls.linear, pos,
+                        boundaries=boundaries, delimiter=delimiter)
+                source_string_span = _get_regs(sub_match, 
+                        ls.lin2syl_map, boundaries, delimiter)[0]
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
@@ -643,37 +644,6 @@ class _Linear:
     def get_syl_end(self, idx):
         return self.get_syl_span(idx)[1]
 
-def _get_span(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
-    """
-    Map the index positions of the match to their corresponding 
-    positions in the source text
-
-    Args:
-        Match: re.Match object carried out over the linearized text
-        lin2syl_mapping: index_list returned from _linearize function
-
-    Returns:
-        list: a list containing the corresponding span positions in the
-            original (non-linearized) text
-    """
-
-    span_index = list(Match.span())
-    if boundaries == True and Match.group(0)[0] == delimiter:
-        span_start = lin2syl_mapping[span_index[0]+1]
-    else:
-        span_start = lin2syl_mapping[span_index[0]]
-
-    # re.MATCH object's span end is index *after* final character,
-    # so, we need to subtract one to get the index of the character 
-    # to map back to the original, then add one to the result to 
-    # get the index after this character
-    if boundaries == True and Match.group(0)[-1] == delimiter:
-        span_end = lin2syl_mapping[span_index[1]-2] + 1
-    else:
-        span_end = lin2syl_mapping[span_index[1]-1] + 1
-    
-    return (span_start, span_end)
-
 def _make_match_object(pattern, string, Match, *args, boundaries=False, 
         delimiter=';'):
     """
@@ -711,8 +681,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     return match_obj 
 
 def _get_regs(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
-    # TODO: update doc; remove _get_span and replace with this
-    # eventually
+    # TODO: update doc
     """
     Map the index positions of the match to their corresponding 
     positions in the source text
