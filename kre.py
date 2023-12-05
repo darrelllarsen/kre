@@ -554,7 +554,8 @@ class KRE_Pattern:
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
                 match_list.append(_make_match_object(self.pattern, string, 
-                    sub_match, *args))
+                    sub_match, *args, boundaries=boundaries,
+                    delimiter=delimiter))
                 pos = sub_match.span()[1]
             return iter(match_list)
         else:
