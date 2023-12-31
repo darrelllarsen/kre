@@ -496,8 +496,9 @@ class KRE_Pattern:
         if 0 < count < sub_count:
             sub_count = count
 
-        return (self.sub(repl, string, count=count, boundaries=False, 
-            delimiter=';', syllabify=syllabify), sub_count)
+        return (self.sub(repl, string, count=count, 
+            boundaries=boundaries, delimiter=delimiter, 
+            syllabify=syllabify), sub_count)
 
 
     def split(self, string, maxsplit=0, boundaries=False, 
