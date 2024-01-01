@@ -586,6 +586,7 @@ class _Linear:
                     linearized_str -> ㅎㅏㄴㄱㅜㄱ
                     lin2syl_mapping[4] -> 1 (ㅜ in index 1 in input)
         """
+        
 
         linearized_str = ''
         lin2syl_mapping = []
@@ -617,7 +618,6 @@ class _Linear:
                 lin2syl_mapping.append(linear_index)
                 linear_index += 1
             just_saw_boundary = (linearized_str[-1] == self.delimiter)
-
         return (linearized_str, lin2syl_mapping)
 
     def _get_syl_span_map(self):
@@ -636,6 +636,10 @@ class _Linear:
                 start = n
                 mapped_idx += 1
         return syl_span_map
+
+    def _show_alignment(self):
+        for n, pair in enumerate(self.syl_span_map):
+            print(n, self.original[n], '\t-> ', pair, self.linear[pair[0]:pair[1]])
 
     def get_syl_span(self, idx):
         return self.syl_span_map[self.lin2syl_map[idx]]
