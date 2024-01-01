@@ -629,10 +629,13 @@ class _Linear:
         start = 0
         mapped_idx = 0
         for n in range(len(self.lin2syl_map)+1):
+            # Case: end of string
             if n == len(self.lin2syl_map):
                 syl_span_map.append((start, n))
+            # Case: from same syllable as previous
             elif self.lin2syl_map[n] == mapped_idx:
-                n += 1
+                pass
+            # Case: from start of syllable
             else:
                 syl_span_map.append((start, n))
                 start = n
