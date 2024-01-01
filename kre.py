@@ -402,7 +402,6 @@ class KRE_Pattern:
                 sub['original_span'] = (start, end)
                 sub['linear_span'] = span
                 i += 1
-
         # Keep track of extra letters in the subbed syllables which
         # preceded/followed the actual substitution
         for n in range(len(subs)):
@@ -436,7 +435,6 @@ class KRE_Pattern:
             num_subs = num_subs + sub['num_subs']
             subbed_string = self.Pattern.sub(repl, ls.linear,
                     count=num_subs)
-
             # Calculate the start and end indices of the inserted substitution
             sub_start = sub['linear_span'][0] + extra
             extra += len(subbed_string) - len(prev_string)
@@ -481,6 +479,10 @@ class KRE_Pattern:
         if syllabify == 'none':
             pass
 
+        # Remove the delimiter from the output
+        if boundaries == True:
+            output = output.replace(delimiter, '')
+            
         return output
 
     def subn(self, repl, string, count=0, boundaries=False, 
@@ -637,10 +639,6 @@ class _Linear:
                 mapped_idx += 1
         return syl_span_map
 
-    def _show_alignment(self):
-        for n, pair in enumerate(self.syl_span_map):
-            print(n, self.original[n], '\t-> ', pair, self.linear[pair[0]:pair[1]])
-
     def get_syl_span(self, idx):
         return self.syl_span_map[self.lin2syl_map[idx]]
 
@@ -649,6 +647,11 @@ class _Linear:
 
     def get_syl_end(self, idx):
         return self.get_syl_span(idx)[1]
+
+    def show_alignment(self):
+        for n, pair in enumerate(self.syl_span_map):
+            print(n, self.original[n], '\t-> ', pair, self.linear[pair[0]:pair[1]])
+
 
 def _make_match_object(pattern, string, Match, *args, boundaries=False, 
         delimiter=';'):
@@ -670,7 +673,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
         for n, arg in enumerate(args):
             pos_args[n] = arg
 
-    ls = _Linear(string, boundaries, delimiter)
+    ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
     lp = _Linear(pattern)
     match_obj = KRE_Match(
             kre = re.compile(lp.linear), 
@@ -679,8 +682,8 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
             linear = ls.linear,
             pos = pos_args[0],
             endpos = pos_args[1],
-            regs = _get_regs(Match, ls.lin2syl_map, boundaries,
-                delimiter),
+            regs = _get_regs(Match, ls.lin2syl_map,
+                boundaries=boundaries, delimiter=delimiter),
             lin2syl_map = ls.lin2syl_map,
             Match = Match,
             )
