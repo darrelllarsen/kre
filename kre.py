@@ -562,7 +562,6 @@ class _Linear:
         self.lin2del_span = self._get_lin2del_span()
         self.orig2del_span = self._get_orig2del_span()
         self.orig2lin_span = self._get_orig2lin_span()
-        self.syl_span_map = self.del2lin_span
 
     def validate_delimiter(self) -> None:
         """
@@ -678,7 +677,13 @@ class _Linear:
         return tuple(span_map)
 
     def _get_lin2orig_span(self):
-        # alternative: self.lin2orig_span[n] = self.del2orig_span[self.lin2del[n]]
+        span_map = []
+        for n in range(len(self.lin2orig)):
+            span_map.append(self.del2orig_span[self.lin2del[n]])
+        
+        return tuple(span_map)
+
+    def _get_lin2orig_span_old(self): # DELETE AFTER TEST
         span_map = []
         end_idx = 0
 
@@ -730,7 +735,7 @@ class _Linear:
         return tuple(span_map)
 
     def get_syl_span(self, idx):
-        return self.syl_span_map[self.lin2del[idx]]
+        return self.del2lin_span[self.lin2del[idx]]
 
     def get_syl_start(self, idx):
         return self.get_syl_span(idx)[0]
@@ -759,12 +764,14 @@ class _Linear:
         return output
 
     def show_original_alignment(self):
-        print('Index\tOriginal\tdel2orig\tdel2orig_span\tDelimited\tdel2lin_span\tLinear')
+        print('Index\tOriginal\torig2del_span\tdel2orig\tdel2orig_span\tDelimited\tdel2lin_span\tLinear')
         for n, idx in enumerate(self.del2orig):
             orig_idx = idx if idx != None else ''
             orig_str = '' if orig_idx == '' else self.original[orig_idx]
             start, end = self.del2lin_span[n]
-            print(orig_idx, '\t', orig_str, '\t\t',
+            print(f'{n}|{orig_idx}', '\t', orig_str, '\t\t',
+                    '\t' if self.del2orig[n] == None else
+                            self.orig2del_span[self.del2orig[n]], '\t',
                     self.del2orig[n], '\t\t',
                     self.del2orig_span[n], '\t', self.delimited[n],
                     '\t\t', self.del2lin_span[n], '\t',
@@ -887,14 +894,6 @@ class KRE_Match:
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
                 self.span(), self.string[self.span()[0]:self.span()[1]])
 
-    def end(self, *args) -> int:
-        """
-        end([group=0]) -> int.
-        Return index of the end of the substring matched by group.
-        """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]][1]
 
     def expand() -> str:
         """
@@ -966,18 +965,27 @@ class KRE_Match:
         For MatchObject m, return the 2-tuple (m.start(group),
         m.end(group)).
         """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]]
+        if args:
+            idx = args[0]
+            if isinstance(idx, str):
+                idx = self.re.groupindex[idx]
+        else:
+            idx = 0
+        return self.regs[idx]
 
     def start(self, *args) -> int:
         """
         start([group=0]) -> int.
         Return index of the start of the substring matched by group.
         """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]][0]
+        return self.span(*args)[0]
+
+    def end(self, *args) -> int:
+        """
+        end([group=0]) -> int.
+        Return index of the end of the substring matched by group.
+        """
+        return self.span(*args)[1]
 
     def _get_lastgroup(self):
         # No named capture groups? Return None
