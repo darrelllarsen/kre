@@ -44,163 +44,22 @@ delimiter=new_symbol.
 
 
 TODO:
-
     Improve documentation.
 
-    Complete and improve implementation of KRE_Match class. One
-    significant consideration is whether to implement the re.Match
-    object within the KRE_Match object, or to return the original
-    re.Match object on the linearized data along with the KRE_Match
-    objects on the unlinearized data.
+    Implement exceptions; may want to add kre-specific exceptions
 
-    Implement the kre.Pattern class with methods that call kre functions 
-        rather than re functions.
-
-    Implement the error exception; may want to add kre-specific 
-        exceptions
-
-    finditer should return callable_iterator rather than list_iterator
-        (this may depend on the implementation of KRE_Match)
+    re.finditer returns class 'callable_iterator' rather than
+    'list_iterator'. Unclear whether there is any practical difference;
+    it may simply reflect something in the underlying C-level code
+    not directly accessible via python.
 
 """
 
 import re
 from . import KO
 
-class KRE_Match:
-    """
-    The KRE_Match class is intended to mimic the _sre.SRE_Match object,
-    but to provide results based on the positions of the Match objects
-    in the original input rather than the linearized input which is fed
-    to the re module functions. In essence, it converts a _sre.SRE_Match
-    object into a new one by replacing the positional arguments of
-    letters to their corresponding index positions in the unlinearized
-    text.
-    A few additional methods are defined to allow the user to obtain data on
-    both the original and modified strings created by kre.
-
-    TODO: this is not yet fully implemented. See todos at top.
-    """
-    def __init__(self, endpos = None, lastgroup = None, 
-            lastindex = None, pos = 0, re = None, regs = None, 
-            string = None, kre = None, lin2syl_map = None, 
-            linear = None, Match=None):
-       
-        self.endpos =  endpos # int; last index pos==len(self.string)
-        self.lastgroup = lastgroup
-        self.lastindex = lastindex
-        self.pos = pos #int
-        self.re = re #SRE_Pattern
-        self.regs = regs #tuple
-        self.string = string
-
-        # underlying re.Match object 
-        # contains same attributes as above but for linearized string
-        self.Match = Match 
-   
-        #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
-        self.kre = kre #modified KRE_Pattern
-        self.linear = linear
-
-        # Following maps linear indices to original string indices
-        self.lin2syl_map = lin2syl_map
-
-    def __repr__(self):
-        return "<kre.KRE_Match object; span=%s, match='%s'>" % (
-                self.span(), self.string[self.span()[0]:self.span()[1]])
-
-    def end(self, *args):
-        """
-        end([group=0]) -> int.
-        Return index of the end of the substring matched by group.
-        """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]][1]
-
-    def expand():
-        """
-        expand(template) -> str.
-        Return the string obtained by doing backslash substitution
-        on the string template, as done by the sub() method.
-
-        NOTE: not well documented. Example use:
-        number = re.match(r"(\d+)\.(\d+)", "24.1632")
-        print(number.expand(r"Whole: \1 | Fractional: \2"))
-        (output) 'Whole: 24 | Fractional: 1632'
-
-        TODO: When implementing, will need to add argument for degrees 
-        of syllabification, as with sub() function.
-        
-        TODO: Will need to treat linearization of pattern different from
-        string. Need to maintain identifiers of named groups such as  
-        (?P<숫자>\d+) 
-        """
-        pass
-    
-    def group(self, *args):
-        """
-        group([group1, ...]) -> str or tuple.
-        Return subgroup(s) of the match by indices or names.
-        For 0 returns the entire match.
-        """
-        if not args:
-            args = [0,]
-        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] or None 
-                    for arg in args]
-        if len(res) == 1:
-            return res[0]
-        else:
-            return tuple(res)
-
-    def groupdict(self):
-        """
-        groupdict([default=None]) -> dict.
-        Return a dictionary containing all the named subgroups of the 
-        match, keyed by the subgroup name. The default argument is used
-        for groups that did not participate in the match
-        """
-        inv_map = {value: key for key, value in
-                self.re.groupindex.items()}
-        return {inv_map[n]: self.group(n) for n in range(1, 
-                len(inv_map)+1)}
-
-    def groups(self, default=None):
-        """
-        groups([default=None]) -> tuple.
-        Return a tuple containing all the subgroups of the match, from
-        1. The default argument is used for groups that did not 
-        participate in the match
-        """
-        g = []
-        for n in range(1, len(self.Match.groups())+1):
-            if self.span(n) == (-1, -1):
-                g.append(default)
-            else:
-                g.append(self.string[self.span(n)[0]:self.span(n)[1]])
-        return tuple(g)
-
-    def span(self, *args):
-        """
-        span([group]) -> tuple.
-        For MatchObject m, return the 2-tuple (m.start(group),
-        m.end(group)).
-        """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]]
-
-    def start(self, *args):
-        """
-        start([group=0]) -> int.
-        Return index of the start of the substring matched by group.
-        """
-        if not args:
-            args = [0,]
-        return self.regs[args[0]][0]
 
 ### Public interface
-
 
 def search(pattern, string, flags=0, boundaries=False, delimiter=';'):
     return compile(pattern, flags).search(string, 
@@ -315,8 +174,11 @@ class KRE_Pattern:
         return "kre.compile(%s)" % repr(self.pattern)
 
     def search(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
-        match_ = self.Pattern.search(ls.linear, *args)
+        ls, lin_args = self._process(string, *args,
+                boundaries=boundaries, delimiter=delimiter)
+
+        match_ = self.Pattern.search(ls.linear, *lin_args)
+
         if match_:
             return _make_match_object(self.pattern, string, match_,
                     *args,
@@ -327,8 +189,11 @@ class KRE_Pattern:
             return match_
 
     def match(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
-        match_ = self.Pattern.match(ls.linear, *args)
+        ls, lin_args = self._process(string, *args,
+                boundaries=boundaries, delimiter=delimiter)
+
+        match_ = self.Pattern.match(ls.linear, *lin_args)
+
         if match_:
             return _make_match_object(self.pattern, string, match_,
                     *args,
@@ -337,11 +202,13 @@ class KRE_Pattern:
                     )
         else:
             return match_
-        return re.match(*args, **kwargs)
 
     def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
-        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
-        match_ = self.Pattern.fullmatch(ls.linear, *args)
+        ls, lin_args = self._process(string, *args,
+                boundaries=boundaries, delimiter=delimiter)
+
+        match_ = self.Pattern.fullmatch(ls.linear, *lin_args)
+
         if match_:
             return _make_match_object(self.pattern, string, match_,
                     *args,
@@ -354,7 +221,6 @@ class KRE_Pattern:
     def sub(self, repl, string, count=0, boundaries=False, 
             delimiter=';', syllabify='extended'):
         """
-        TODO: limit number of substitions to count
         kre modification: source string and pattern are linearized prior to 
         calling re.subn()
 
@@ -376,10 +242,17 @@ class KRE_Pattern:
                     )
         
         # Find the spans where substitutions will occur.
-        matches = self.finditer(ls.linear,
-                boundaries=boundaries, delimiter=delimiter)
 
-        # Iterate over matches to extract subbed spans from original string
+        matches = self.finditer(ls.linear)
+        #matches = self.finditer(ls.linear,
+        #        boundaries=boundaries, delimiter=delimiter)
+
+        # Iterate over matches to extract subbed spans from delimited string
+
+        ############NOTE##############
+        #'original' must be changed to 'delimited' below
+        ##############################
+
         subs = dict()
         i = 0 # number non-overlapping sub spans (no increment for shared syllable)
         for n, match_ in enumerate(matches):
@@ -387,8 +260,12 @@ class KRE_Pattern:
             if 0 < count <= n:
                 break
             span = match_.span()
-            start = ls.lin2syl_map[span[0]]
-            end = ls.lin2syl_map[span[1]-1]+1
+
+
+            start = ls.lin2del[span[0]]
+            end = ls.lin2del[span[1]-1]+1
+
+
             if i > 0 and subs[i-1]['original_span'][1] > start:
                 subs[i-1]['num_subs'] += 1
                 subs[i-1]['original_span'] = (
@@ -422,8 +299,8 @@ class KRE_Pattern:
         safe_text = []
         for n in range(len(subs) + 1):
             start = 0 if n == 0 else subs[n-1]['original_span'][1]
-            end = len(string) if n == len(subs) else subs[n]['original_span'][0]
-            safe_text.append(string[start:end])
+            end = len(ls.delimited) if n == len(subs) else subs[n]['original_span'][0]
+            safe_text.append(ls.delimited[start:end])
 
         # Carry out substitutions one by one to identify the indices of each 
         # changed section. 
@@ -482,7 +359,7 @@ class KRE_Pattern:
         # Remove the delimiter from the output
         if boundaries == True:
             output = output.replace(delimiter, '')
-            
+
         return output
 
     def subn(self, repl, string, count=0, boundaries=False, 
@@ -511,25 +388,29 @@ class KRE_Pattern:
         raise NotImplementedError 
 
     def findall(self, string, *args, boundaries=False, delimiter=';'):
-        # Run re function on linearized pattern and linearized string
-        ls = _Linear(string, boundaries=boundaries,
-                delimiter=delimiter)
-        
-        match_ = self.Pattern.findall(ls.linear, *args)
+        ls, lin_args = self._process(string, *args,
+                boundaries=boundaries, delimiter=delimiter)
+
+        match_ = self.Pattern.findall(ls.linear, *lin_args)
 
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
         if match_:
-            pos = 0 
+            pos = lin_args[0]
             match_list = []
             for item in match_:
-                sub_match = self.search(ls.linear, pos,
-                        boundaries=boundaries, delimiter=delimiter)
+                # Because we've already linearized the string, we don't
+                # pass in boundaries or delimiter here.
+                sub_match = self.search(ls.linear, pos)
+                _span = ls.get_lin2syl_span(*sub_match.span())
+
                 source_string_span = _get_regs(sub_match, 
-                        ls.lin2syl_map, boundaries, delimiter)[0]
+                        ls, boundaries=boundaries,
+                        delimiter=delimiter)[0]
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
+                #match_list.append(ls.get_original(*_span))
                 pos = sub_match.span()[1]
             return match_list
         else:
@@ -544,15 +425,15 @@ class KRE_Pattern:
             returns list_iterator rather than callable iterator (see TODOs)
         """
 
-        #Implementation differs from re.finditer
-        ls = _Linear(string, boundaries=boundaries, 
-                delimiter=delimiter)
+        #Return type differs slightly from re.finditer
+        ls, lin_args = self._process(string, *args,
+                boundaries=boundaries, delimiter=delimiter)
 
-        match_ = self.Pattern.finditer(ls.linear, *args)
+        match_ = self.Pattern.finditer(ls.linear, *lin_args)
 
         # For all re.Match objects in match_
         if match_:
-            pos = 0 
+            pos = lin_args[0]
             match_list = []
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
@@ -564,63 +445,301 @@ class KRE_Pattern:
         else:
             return None
 
+    def _process(self, string, *args, boundaries, delimiter):
+        """
+        Perform processes common to search, match, fullmatch, findall,
+        and finditer
+        """
+        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
+        lin_args = self._process_pos_args(ls, *args)
+
+        return ls, lin_args
+
+    def _process_pos_args(self, _linear, *args):
+        """
+        Map the pos and endpos args to their corresponding linear positions.
+
+        When boundaries == True, pos and endpos expand to include boundaries
+        """
+        output = []
+        map_ = _linear.lin2orig
+        orig_size = len(_linear.original)
+
+        # Fill in missing args 
+        if len(args) == 0:
+            args = [0]
+        if len(args) == 1:
+            args = [args[0], len(map_)]
+
+        for arg in args:
+            if 0 <= arg < orig_size:
+                output.append(map_.index(arg))
+            # >= length of string?
+            elif arg >= orig_size:
+                output.append(len(map_)) 
+            # Less than 0?
+            else:
+                output.append(0)
+
+        # If pos is preceded by a boundary marker, expand to include it
+        # No need to do this for endpos
+        if output[0] > 0:
+            if map_[output[0]-1] == None:
+                output[0] -= 1
+
+        return tuple(output)
+
 class _Linear:
+    """
+    Contains three levels of representation of the input, maps between
+    the levels, and methods for navigation, string extraction, and
+    mapping representation.
+
+    - levels:
+        original: input string without alteration
+        delimited: same as original if boundaries == False; otherwise, 
+            input string with delimiters placed around Korean characters
+            (both syllables and letters)
+        linear: linearized form of delimited; i.e., Korean characters
+            are all replaced with Korean letter sequences
+    - maps: 
+        del2orig,
+            'This is ;한;글;'
+        lin2del, 
+        del2lin_span, 
+        lin2orig
+    - example
+        - levels:
+            original: 'This is 한글ㅋㅋ'
+            delimited: 'This is ;한;글;ㅋ;ㅋ;'
+            linear: 'This is ;ㅎㅏㄴ;ㄱㅡㄹ;ㅋ;ㅋ;'
+        - maps:
+            - Note that maps *to* original level map delimiters to None.
+            del2orig: (0,1,2,3,4,5,6,7,None,8,None,9,None,10,None,11,None)
+                       T,h,i,s, ,i,s, ,;...,한,;...,글,;...,ㅋ,;...,ㅋ,;...
+            lin2del: (0,1,2,3,4,5,6,7,8,9,9,9,10,11,11,11,12,13,14,15,16)
+                      T,h,i,s, ,i,s, ,;,ㅎ,ㅏ,ㄴ,;,ㄱ,ㅡ,ㄹ,;ㅋ,;,ㅋ,;
+            lin2orig: (0,1,2,3,4,5,6,7,None,8,8,8,None,9,9,9,None,10,None,11,None)
+        - span maps:
+            - Note that span maps *to* original level map delimiters to
+              indices of the form (n, n) (where start=end).
+            del2lin_span:
+                    ((0,1), #T
+                    (1,2), #h
+                    (2,3), #i
+                    (3,4), #s
+                    (4,5), # 
+                    (5,6), #i
+                    (6,7), #s
+                    (7,8), # 
+                    (8,9), #;
+                    (9,12), #한 -> ㅎㅏㄴ
+                    (12,13), #;
+                    (13,16), #글 -> ㄱㅡㄹ
+                    (16,17), #;
+                    (17,18), ㅋ
+                    (18,19), #;
+                    (19,20), ㅋ
+                    (20,21), #;
+
+
+    Developer notes: 
+    - new levels and their mappings should be created simultaneously
+    - abbreviation: {delimiter: del; original: orig; linear: lin}
+        - use abbreviations exclusively within functions
+        - use full name as class attribute
+    """
     def __init__(self, string, boundaries=False, delimiter=';'):
         self.boundaries = boundaries
         self.delimiter = delimiter
+
+        # levels of representation and mappings
         self.original = string
-        self.linear, self.lin2syl_map = self._linearize()
-        self.syl_span_map = self._get_syl_span_map()
+        self.delimited, self.del2orig = self._delimit()
+        self.linear, self.lin2del = self._linearize()
+        self.lin2orig = tuple(self.del2orig[n] for n in self.lin2del)
+        self.del2lin_span = self._get_del2lin_span()
+        self.del2orig_span = self._get_del2orig_span()
+        self.lin2orig_span = self._get_lin2orig_span()
+        self.lin2del_span = self._get_lin2del_span()
+        self.orig2del_span = self._get_orig2del_span()
+        self.orig2lin_span = self._get_orig2lin_span()
+        self.syl_span_map = self.del2lin_span
 
-    def _linearize(self):
+    def validate_delimiter(self) -> None:
         """
-        Linearizes input string by splitting up Korean syllables into 
-        individual Korean letters.
-
-        Args:
-            string (str): input string containing one or more Korean
-            characters
-
-        Outputs:
-            linearized_str (str): linearized version of input string
-            lin2syl_mapping (lst): index of character positions in input string
-                ex. given input 한국:
-                    linearized_str -> ㅎㅏㄴㄱㅜㄱ
-                    lin2syl_mapping[4] -> 1 (ㅜ in index 1 in input)
-        """
+        When boundaries == True, checks whether choice of delimiter is
+        present in string.
         
+        This method should only be called on the 'string' input; it
+        should not be called on the 'pattern' input.
+        """
+        if self.boundaries == True and self.delimiter in self.original:
+            raise ValueError('Delimiter must not be present in original string')
 
-        linearized_str = ''
-        lin2syl_mapping = []
-        linear_index = 0
-        just_saw_boundary = False
+    def _delimit(self): # returns (del_str, tuple(del2orig_))
+        del_str = ''
+        del2orig_ = []
+        orig_idx = 0
+        just_saw_delimiter = False
 
         for char_ in self.original:
-            if KO.isSyllable(char_):
+            if KO.isHangul(char_):
                 
-                # add boundary symbol in front of Korean syllable
-                if self.boundaries==True and not just_saw_boundary:
-                    linearized_str += self.delimiter
-                    lin2syl_mapping.append(linear_index)
+                # add delimiter in front of Korean syllable
+                if self.boundaries==True and not just_saw_delimiter:
+                    del_str += self.delimiter
+                    del2orig_.append(None)
 
-                # append the linearized string
-                for letter in ''.join(KO.split(char_, split_coda=True)):
-                    linearized_str += letter
-                    lin2syl_mapping.append(linear_index)
+                # add the character
+                del_str += char_
+                del2orig_.append(orig_idx)
 
-                # add boundary symbol at end of Korean syllable
+                # add delimiter symbol at end of Korean syllable
                 if self.boundaries==True:
-                    linearized_str += self.delimiter
-                    lin2syl_mapping.append(linear_index)
-                
-                linear_index += 1
+                    del_str += self.delimiter
+                    del2orig_.append(None)
 
             else:
-                linearized_str += char_
-                lin2syl_mapping.append(linear_index)
-                linear_index += 1
-            just_saw_boundary = (linearized_str[-1] == self.delimiter)
-        return (linearized_str, lin2syl_mapping)
+                del_str += char_
+                del2orig_.append(orig_idx)
+
+            orig_idx += 1
+            just_saw_delimiter = (del_str[-1] == self.delimiter)
+
+        return (del_str, tuple(del2orig_))
+
+    def _linearize(self): # returns (lin_str, tuple(lin2del_))
+        """
+        Linearizes delimited string by splitting up Korean syllables into 
+        individual Korean letters.
+
+        Outputs:
+            lin_str (str): linearized version of delimited string
+            lin2del_ (tuple): index of character positions in delimited string
+                ex. given input 한국:
+                    lin_str -> ㅎㅏㄴㄱㅜㄱ
+                    lin2del_[4] -> 1 (ㅜ in index 1 in input)
+        """
+
+        lin_str = ''
+        lin2del_ = []
+        lin2orig_str = []
+        lin_idx = 0
+
+        for char_ in self.delimited:
+            if KO.isSyllable(char_):
+                
+                # append the linearized string
+                for letter in ''.join(KO.split(char_, split_coda=True)):
+                    lin_str += letter
+                    lin2del_.append(lin_idx)
+
+                lin2orig_str.append(char_)
+
+
+            else:
+                lin_str += char_
+                lin2del_.append(lin_idx)
+            lin_idx += 1
+        return (lin_str, tuple(lin2del_))
+
+    def _get_del2lin_span(self): # returns tuple(span_map)
+        span_map = []
+        start = 0
+        mapped_idx = 0
+
+        for n in range(len(self.lin2del)+1):
+            # Case: end of string
+            if n == len(self.lin2del):
+                span_map.append((start, n))
+
+            # Case: from same syllable as previous
+            elif self.lin2del[n] == mapped_idx:
+                pass
+
+            # Case: from start of syllable
+            else:
+                span_map.append((start, n))
+                start = n
+                mapped_idx += 1
+
+        return tuple(span_map)
+
+    def _get_del2orig_span(self): # returns tuple(span_map)
+        span_map = []
+        end_idx = 0
+
+        for idx in self.del2orig:
+            if idx != None:
+                end_idx = idx + 1
+                span_map.append((idx, end_idx))
+            else:
+                span_map.append((end_idx, end_idx))
+
+        return tuple(span_map)
+
+    def _get_lin2orig_span(self):
+        # alternative: self.lin2orig_span[n] = self.del2orig_span[self.lin2del[n]]
+        span_map = []
+        end_idx = 0
+
+        for idx in self.lin2orig:
+            if idx != None:
+                end_idx = idx+1
+                span_map.append((idx, end_idx))
+            else:
+                span_map.append((end_idx, end_idx))
+
+        return tuple(span_map)
+
+    def _get_lin2del_span(self):
+        span_map = []
+        end_idx = 0
+
+        for idx in self.lin2del:
+            if idx != None:
+                end_idx = idx+1
+                span_map.append((idx, end_idx))
+            else:
+                span_map.append((end_idx, end_idx))
+
+        return tuple(span_map)
+
+    # Forward maps
+    def _get_orig2del_span(self): #Revise - no need for span in this direction
+        span_map = []
+        map_ = self.del2orig
+        _pam = map_[::-1]
+
+        for n in range(len(self.original)):
+            start = map_.index(n)
+            end = len(map_) - _pam.index(n)
+            span_map.append((start, end))
+
+        return tuple(span_map)
+
+    def _get_orig2lin_span(self):
+        span_map = []
+        map_ = self.lin2orig
+        _pam = map_[::-1]
+
+        for n in range(len(self.original)):
+            start = map_.index(n)
+            end = len(map_) - _pam.index(n)
+            span_map.append((start, end))
+
+        return tuple(span_map)
+
+    def show_del2orig_span(self):
+        print('Index\tDelim\tMapping\tOriginal')
+        for n, span_ in enumerate(self.del2orig_span):
+            print(n, '\t', self.delimited[n], '\t', span_, self.original[slice(*span_)])
+
+    def show_lin2orig_span(self):
+        print('Index\tLinear\tMapping\tOriginal')
+        for n, span_ in enumerate(self.lin2orig_span):
+            print(n, '\t', self.linear[n], '\t', span_, self.original[slice(*span_)])
 
     def _get_syl_span_map(self):
         # Note: to get syllable span (start and end indices) for any given
@@ -628,12 +747,12 @@ class _Linear:
         syl_span_map = []
         start = 0
         mapped_idx = 0
-        for n in range(len(self.lin2syl_map)+1):
+        for n in range(len(self.lin2del)+1):
             # Case: end of string
-            if n == len(self.lin2syl_map):
+            if n == len(self.lin2del):
                 syl_span_map.append((start, n))
             # Case: from same syllable as previous
-            elif self.lin2syl_map[n] == mapped_idx:
+            elif self.lin2del[n] == mapped_idx:
                 pass
             # Case: from start of syllable
             else:
@@ -643,7 +762,7 @@ class _Linear:
         return syl_span_map
 
     def get_syl_span(self, idx):
-        return self.syl_span_map[self.lin2syl_map[idx]]
+        return self.syl_span_map[self.lin2del[idx]]
 
     def get_syl_start(self, idx):
         return self.get_syl_span(idx)[0]
@@ -651,10 +770,70 @@ class _Linear:
     def get_syl_end(self, idx):
         return self.get_syl_span(idx)[1]
 
-    def show_alignment(self):
-        for n, pair in enumerate(self.syl_span_map):
-            print(n, self.original[n], '\t-> ', pair, self.linear[pair[0]:pair[1]])
+    def get_lin2syl_span(self, *args): # GET RID OF THIS
+        """
+        Maps linear span to syllable/boundary span
 
+        Args:
+            1-2 integers for start (and end) of linear span
+            If 1 arg only, assumes span length of 1
+        """
+        if len(args) == 1:
+            args = (args[0], args[0]+1)
+        return (self.lin2del_span[args[0]][0],
+                self.lin2del_span[args[1]-1][1])
+
+    def get_lin_to_original_span(self, *args):
+        syl_span = list(self.get_lin2syl_span(*args))
+        if self.boundaries == True:
+            print(syl_span)
+            print(self.linear[syl_span[0]], self.linear[syl_span[1]])
+            if self.linear[syl_span[0]] == self.delimiter:
+                syl_span[0] += 1
+            elif self.linear[syl_span[1]-1] == self.delimiter:
+                print('here')
+                syl_span[1] -= 1
+        return tuple(syl_span)
+
+    def get_original(self, *args): # REMOVE or RENAME
+        """
+        Maps syl2original span to original string
+
+        Args:
+            1-2 integers for start (and end) of syllable/boundary span
+            If 1 arg only, assumes span length of 1
+        """
+        if len(args) == 1:
+            args = (args[0], args[0]+1)
+
+        start = self.del2orig[args[0]]
+        end = self.del2orig[args[1]]
+
+        output = ''.join(
+                letter for letter in self.original[start:end]
+                if letter != None
+                )
+        return output
+
+    def show_original_alignment(self):
+        print('Index\tOriginal\tdel2orig\tdel2orig_span\tDelimited\tdel2lin_span\tLinear')
+        for n, idx in enumerate(self.del2orig):
+            orig_idx = idx if idx != None else ''
+            orig_str = '' if orig_idx == '' else self.original[orig_idx]
+            start, end = self.del2lin_span[n]
+            print(orig_idx, '\t', orig_str, '\t\t',
+                    self.del2orig[n], '\t\t',
+                    self.del2orig_span[n], '\t', self.delimited[n],
+                    '\t\t', self.del2lin_span[n], '\t',
+                    self.linear[start:end])
+
+    def show_linear_alignment(self):
+        print('Index\tLinear\tlin2del\tlin2del_span\tDelimited\tlin2orig\tlin2orig_span\tOriginal')
+        for n, span_ in enumerate(self.lin2orig_span):
+            d2o_span = self.del2orig_span[self.lin2del[n]]
+            print(n, '\t', self.linear[n], '\t', self.lin2del[n], '\t', self.lin2del_span[n],
+                    '\t', self.delimited[slice(*self.lin2del_span[n])],
+                    '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
 def _make_match_object(pattern, string, Match, *args, boundaries=False, 
         delimiter=';'):
@@ -669,7 +848,6 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     Returns:
         KRE_Match object
     """
-
     # Extract pos, endpos args, if provided
     pos_args = [0, len(string)] # re defaults
     if args:
@@ -679,20 +857,20 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
     lp = _Linear(pattern)
     match_obj = KRE_Match(
-            kre = re.compile(lp.linear), 
+            kre = re.compile(lp.linear), # DELETE
             re = re.compile(pattern), 
             string = string, 
             linear = ls.linear,
             pos = pos_args[0],
             endpos = pos_args[1],
-            regs = _get_regs(Match, ls.lin2syl_map,
+            regs = _get_regs(Match, ls,
                 boundaries=boundaries, delimiter=delimiter),
-            lin2syl_map = ls.lin2syl_map,
+            lin2del = ls.lin2del,
             Match = Match,
             )
     return match_obj 
 
-def _get_regs(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
+def _get_regs(Match, linear_obj, boundaries=False, delimiter=';'):
     # TODO: update doc
     """
     Map the index positions of the match to their corresponding 
@@ -700,33 +878,167 @@ def _get_regs(Match, lin2syl_mapping, boundaries=False, delimiter=';'):
 
     Args:
         Match: re.Match object carried out over the linearized text
-        lin2syl_mapping: index_list returned from _linearize function
+        linear_obj: _Linear object
 
     Returns:
         list: a list containing the corresponding span positions in the
             original (non-linearized) text
     """
     regs = []
+    l = linear_obj
     for n in range(len(Match.groups())+1):
         span = Match.span(n)
         # (-1, -1) used for groups that did not contibute to the match
         if span == (-1, -1):
             regs.append(span)
             continue
-        elif boundaries == True and Match.group(n)[0] == delimiter:
-            span_start = lin2syl_mapping[span[0]+1]
         else:
-            span_start = lin2syl_mapping[span[0]]
+            span_start = l.lin2orig_span[span[0]][0]
 
         # re.MATCH object's span end is index *after* final character,
         # so, we need to subtract one to get the index of the character 
         # to map back to the original, then add one to the result to 
         # get the index after this character
-        if boundaries == True and Match.group(n)[-1] == delimiter:
-            span_end = lin2syl_mapping[span[1]-2] + 1
-        else:
-            span_end = lin2syl_mapping[span[1]-1] + 1
+        span_end = l.lin2orig_span[span[1]-1][1]
 
         regs.append((span_start, span_end))
     
     return tuple(regs)
+
+class KRE_Match:
+    """
+    The KRE_Match class is intended to mimic the _sre.SRE_Match object,
+    but to provide results based on the positions of the Match objects
+    in the original input rather than the linearized input which is fed
+    to the re module functions. In essence, it converts a _sre.SRE_Match
+    object into a new one by replacing the positional arguments of
+    letters to their corresponding index positions in the unlinearized
+    text.
+    A few additional methods are defined to allow the user to obtain data on
+    both the original and modified strings created by kre.
+    """
+    def __init__(self, endpos = None, lastgroup = None, 
+            lastindex = None, pos = 0, re = None, regs = None, 
+            string = None, kre = None, lin2del = None, 
+            linear = None, Match=None):
+       
+        self.string = string
+        self.pos = pos #int
+        self.re = re #SRE_Pattern
+        self.regs = regs #tuple
+        self.endpos =  endpos # int; last index pos==len(self.string)
+        self.lastgroup = self._get_lastgroup()
+        self.lastindex = Match.lastindex
+
+        # underlying re.Match object 
+        # contains same attributes as above but for linearized string
+        self.Match = Match 
+   
+        #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
+        self.kre = kre #modified KRE_Pattern
+        self.linear = linear
+
+        # Following maps linear indices to original string indices
+        self.lin2del = lin2del
+
+    def __repr__(self):
+        return "<kre.KRE_Match object; span=%s, match='%s'>" % (
+                self.span(), self.string[self.span()[0]:self.span()[1]])
+
+    def end(self, *args):
+        """
+        end([group=0]) -> int.
+        Return index of the end of the substring matched by group.
+        """
+        if not args:
+            args = [0,]
+        return self.regs[args[0]][1]
+
+    def expand():
+        """
+        expand(template) -> str.
+        Return the string obtained by doing backslash substitution
+        on the string template, as done by the sub() method.
+
+        NOTE: not well documented. Example use:
+        number = re.match(r"(\d+)\.(\d+)", "24.1632")
+        print(number.expand(r"Whole: \1 | Fractional: \2"))
+        (output) 'Whole: 24 | Fractional: 1632'
+
+        TODO: When implementing, will need to add argument for degrees 
+        of syllabification, as with sub() function.
+        
+        TODO: Will need to treat linearization of pattern different from
+        string. Need to maintain identifiers of named groups such as  
+        (?P<숫자>\d+) 
+        """
+        raise NotImplementedError 
+    
+    def group(self, *args):
+        """
+        group([group1, ...]) -> str or tuple.
+        Return subgroup(s) of the match by indices or names.
+        For 0 returns the entire match.
+        """
+        if not args:
+            args = [0,]
+        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] or None 
+                    for arg in args]
+        if len(res) == 1:
+            return res[0]
+        else:
+            return tuple(res)
+
+    def groupdict(self, default=None):
+        """
+        groupdict([default=None]) -> dict.
+        Return a dictionary containing all the named subgroups of the 
+        match, keyed by the subgroup name. The default argument is used
+        for groups that did not participate in the match
+        """
+        inv_map = {value: key for key, value in
+                self.re.groupindex.items()}
+
+        apply_default = lambda d: default if d == None else d
+
+        return {inv_map[n]: apply_default(self.group(n)) for n in inv_map.keys()}
+
+    def groups(self, default=None):
+        """
+        groups([default=None]) -> tuple.
+        Return a tuple containing all the subgroups of the match, from
+        1. The default argument is used for groups that did not 
+        participate in the match
+        """
+        g = []
+        for n in range(1, len(self.Match.groups())+1):
+            if self.span(n) == (-1, -1):
+                g.append(default)
+            else:
+                g.append(self.string[self.span(n)[0]:self.span(n)[1]])
+        return tuple(g)
+
+    def span(self, *args):
+        """
+        span([group]) -> tuple.
+        For MatchObject m, return the 2-tuple (m.start(group),
+        m.end(group)).
+        """
+        if not args:
+            args = [0,]
+        return self.regs[args[0]]
+
+    def start(self, *args):
+        """
+        start([group=0]) -> int.
+        Return index of the start of the substring matched by group.
+        """
+        if not args:
+            args = [0,]
+        return self.regs[args[0]][0]
+
+    def _get_lastgroup(self):
+        if len(self.groupdict()) == 0:
+            return None
+        else:
+            return list(self.groupdict().keys())[-1]
