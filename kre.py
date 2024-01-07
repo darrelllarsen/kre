@@ -864,17 +864,17 @@ class KRE_Match:
             string = None, kre = None, lin2del = None, 
             linear = None, Match=None):
        
+        # underlying re.Match object 
+        # contains same attributes as above but for linearized string
+        self.Match = Match 
+
         self.string = string
         self.pos = pos #int
         self.re = re #SRE_Pattern
         self.regs = regs #tuple
         self.endpos =  endpos # int; last index pos==len(self.string)
-        self.lastgroup = self._get_lastgroup()
         self.lastindex = Match.lastindex
-
-        # underlying re.Match object 
-        # contains same attributes as above but for linearized string
-        self.Match = Match 
+        self.lastgroup = self._get_lastgroup()
    
         #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
         self.kre = kre #modified KRE_Pattern
@@ -887,7 +887,7 @@ class KRE_Match:
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
                 self.span(), self.string[self.span()[0]:self.span()[1]])
 
-    def end(self, *args):
+    def end(self, *args) -> int:
         """
         end([group=0]) -> int.
         Return index of the end of the substring matched by group.
@@ -896,7 +896,7 @@ class KRE_Match:
             args = [0,]
         return self.regs[args[0]][1]
 
-    def expand():
+    def expand() -> str:
         """
         expand(template) -> str.
         Return the string obtained by doing backslash substitution
@@ -916,7 +916,7 @@ class KRE_Match:
         """
         raise NotImplementedError 
     
-    def group(self, *args):
+    def group(self, *args) -> str or tuple:
         """
         group([group1, ...]) -> str or tuple.
         Return subgroup(s) of the match by indices or names.
@@ -931,7 +931,7 @@ class KRE_Match:
         else:
             return tuple(res)
 
-    def groupdict(self, default=None):
+    def groupdict(self, default=None) -> dict:
         """
         groupdict([default=None]) -> dict.
         Return a dictionary containing all the named subgroups of the 
@@ -945,7 +945,7 @@ class KRE_Match:
 
         return {inv_map[n]: apply_default(self.group(n)) for n in inv_map.keys()}
 
-    def groups(self, default=None):
+    def groups(self, default=None) -> tuple:
         """
         groups([default=None]) -> tuple.
         Return a tuple containing all the subgroups of the match, from
@@ -960,7 +960,7 @@ class KRE_Match:
                 g.append(self.string[self.span(n)[0]:self.span(n)[1]])
         return tuple(g)
 
-    def span(self, *args):
+    def span(self, *args) -> tuple:
         """
         span([group]) -> tuple.
         For MatchObject m, return the 2-tuple (m.start(group),
@@ -970,7 +970,7 @@ class KRE_Match:
             args = [0,]
         return self.regs[args[0]]
 
-    def start(self, *args):
+    def start(self, *args) -> int:
         """
         start([group=0]) -> int.
         Return index of the start of the substring matched by group.
@@ -980,7 +980,19 @@ class KRE_Match:
         return self.regs[args[0]][0]
 
     def _get_lastgroup(self):
+        # No named capture groups? Return None
         if len(self.groupdict()) == 0:
             return None
+
+        # Inverse map of dictionary
+        inv_map = {value: key for key, value in
+                self.re.groupindex.items()}
+        
+        # Last matched capturing group not in dictionary
+        # -> not a named group.
+        if self.lastindex not in inv_map.keys():
+            return None
+
+        # Return the name of the last named matched capturing group
         else:
-            return list(self.groupdict().keys())[-1]
+            return inv_map[self.lastindex]
