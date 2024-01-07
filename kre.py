@@ -402,7 +402,6 @@ class KRE_Pattern:
                 # Because we've already linearized the string, we don't
                 # pass in boundaries or delimiter here.
                 sub_match = self.search(ls.linear, pos)
-                _span = ls.get_lin2syl_span(*sub_match.span())
 
                 source_string_span = _get_regs(sub_match, 
                         ls, boundaries=boundaries,
@@ -410,7 +409,7 @@ class KRE_Pattern:
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
-                #match_list.append(ls.get_original(*_span))
+
                 pos = sub_match.span()[1]
             return match_list
         else:
@@ -425,7 +424,6 @@ class KRE_Pattern:
             returns list_iterator rather than callable iterator (see TODOs)
         """
 
-        #Return type differs slightly from re.finditer
         ls, lin_args = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -731,36 +729,6 @@ class _Linear:
 
         return tuple(span_map)
 
-    def show_del2orig_span(self):
-        print('Index\tDelim\tMapping\tOriginal')
-        for n, span_ in enumerate(self.del2orig_span):
-            print(n, '\t', self.delimited[n], '\t', span_, self.original[slice(*span_)])
-
-    def show_lin2orig_span(self):
-        print('Index\tLinear\tMapping\tOriginal')
-        for n, span_ in enumerate(self.lin2orig_span):
-            print(n, '\t', self.linear[n], '\t', span_, self.original[slice(*span_)])
-
-    def _get_syl_span_map(self):
-        # Note: to get syllable span (start and end indices) for any given
-        # linearized Korean letter, use syl_span_map[lin_to_syl_map[idx]]
-        syl_span_map = []
-        start = 0
-        mapped_idx = 0
-        for n in range(len(self.lin2del)+1):
-            # Case: end of string
-            if n == len(self.lin2del):
-                syl_span_map.append((start, n))
-            # Case: from same syllable as previous
-            elif self.lin2del[n] == mapped_idx:
-                pass
-            # Case: from start of syllable
-            else:
-                syl_span_map.append((start, n))
-                start = n
-                mapped_idx += 1
-        return syl_span_map
-
     def get_syl_span(self, idx):
         return self.syl_span_map[self.lin2del[idx]]
 
@@ -769,31 +737,6 @@ class _Linear:
 
     def get_syl_end(self, idx):
         return self.get_syl_span(idx)[1]
-
-    def get_lin2syl_span(self, *args): # GET RID OF THIS
-        """
-        Maps linear span to syllable/boundary span
-
-        Args:
-            1-2 integers for start (and end) of linear span
-            If 1 arg only, assumes span length of 1
-        """
-        if len(args) == 1:
-            args = (args[0], args[0]+1)
-        return (self.lin2del_span[args[0]][0],
-                self.lin2del_span[args[1]-1][1])
-
-    def get_lin_to_original_span(self, *args):
-        syl_span = list(self.get_lin2syl_span(*args))
-        if self.boundaries == True:
-            print(syl_span)
-            print(self.linear[syl_span[0]], self.linear[syl_span[1]])
-            if self.linear[syl_span[0]] == self.delimiter:
-                syl_span[0] += 1
-            elif self.linear[syl_span[1]-1] == self.delimiter:
-                print('here')
-                syl_span[1] -= 1
-        return tuple(syl_span)
 
     def get_original(self, *args): # REMOVE or RENAME
         """
@@ -917,8 +860,7 @@ class KRE_Match:
     A few additional methods are defined to allow the user to obtain data on
     both the original and modified strings created by kre.
     """
-    def __init__(self, endpos = None, lastgroup = None, 
-            lastindex = None, pos = 0, re = None, regs = None, 
+    def __init__(self, endpos = None, pos = 0, re = None, regs = None,
             string = None, kre = None, lin2del = None, 
             linear = None, Match=None):
        
