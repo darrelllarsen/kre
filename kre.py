@@ -807,7 +807,6 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
     lp = _Linear(pattern)
     match_obj = KRE_Match(
-            kre = re.compile(lp.linear), # DELETE
             re = re.compile(pattern), 
             string = string, 
             linear = ls.linear,
@@ -819,6 +818,80 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
             Match = Match,
             )
     return match_obj 
+
+# Notes on regs and the present implementation:
+#
+# The Match.regs attribute is undocumented in the official docs. Here 
+# is an explanation of its use, followed by discussion of a problem kre
+# runs regarding regs (and groups) into when empty string matches occur.
+#
+# regs is a tuple of tuples of indices, where the first tuple contains
+# the span of the complete match, and each subsequent tuple represents 
+# the spans of the subgroups of the pattern. When the Match.span method
+# is called with an integer argument n, it returns regs[n]. When called
+# without an argument, Match.span returns regs[0]. Note that Match.span 
+# also accepts string arguments for named groups, thus it is not merely 
+# a redundant function for accessing the subelements of regs.
+#
+# Some matches can consist of an empty string, such as the following
+# patterns and resulting Match object attributes:
+# re.search(r".*?", "한글"): regs -> ((0,0),) | groups -> ()
+# re.search(r"..*?", "한글"): regs -> ((0,1),) | groups -> ()
+# re.search(r"한.*?", "한글"): regs -> ((0,1),) | groups -> ()
+# re.search(r"글.*?", "한글"): regs -> ((1,2),) | groups -> ()
+# re.search(r"(p?).*?", "한글"): regs -> ((0,1, (0,0)) | groups -> ('',)
+# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
+# re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
+#
+# Note that while empty string matches return an empty string in groups, 
+# optional groups that don't participate in the span return None. 
+# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
+# re.search(r".(p)?", "한글"): regs -> ((0,1), (-1,-1)) | groups -> (None,)
+#
+# The problem:
+# In the original implementation, re.Match.group(n) method presumably 
+# returns the substring corresponding to the pair of indices stored at 
+# re.Match.regs[n]. More specifically, for match m and integer n:
+# m.group(n) == m.string[slice(*m.regs[n])]
+# 
+# This isn't as simple for kre, because empty string matches can occur
+# *between* mapped indices, not just *at* indices. Thus, the following
+# is expected:
+# RE:
+# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
+# re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
+# KRE:
+# (note: 한글 (length 2) linearizes to ㅎㅏㄴㄱㅡㄹ (length 6))
+# kre.search(r"(p?)", "한글"): regs -> ((0,0), (0,0)) | groups -> ('',)
+# kre.search(r".(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
+# kre.search(r"..(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
+# kre.search(r"...(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
+# kre.search(r"....(p?)", "한글"): regs -> ((0,2), (1,2)) | groups -> ('글',)
+#
+# On the one hand, the span is correct in each case (empty string
+# matches between syllables should have same start and end indices,
+# while the end indices for matches within syllables should be 1 greater
+# than the start indices). On the other hand, the groups method returns
+# a non-empty string for syllable-internal empty-string matches. This
+# latter fact may be desired (after all, kre is designed to return
+# full syllable matches for sub-syllabic matches), but for many cases
+# users will likely want to treat empty string matches different from
+# other matches (e.g., ignoring empty string matches). There are two
+# possible workarounds:
+# 1. Whenever a tuple in re.Match.regs contains identical start and end
+# indices, we can force them to map onto a single index. We then run into 
+# the question of whether to use the start or end index; for example,
+# the following search has two possible solutions:
+# ex. kre.search(r"(ㅎ)(p?).(ㄴ)", "한글"): 
+# option 1: regs -> ((0,1), (0,1), (0,0), (0,1))
+# option 2: regs -> ((0,1), (0,1), (1,1), (0,1))
+#
+# 2. Leave the indices as is, but add a condition to the groups
+# method to return an empty string for any group in the linearized
+# string that returned an empty string.
+#
+# The present implementation adopts method (2).
+
 
 def _get_regs(Match, linear_obj, boundaries=False, delimiter=';'):
     # TODO: update doc
@@ -836,22 +909,32 @@ def _get_regs(Match, linear_obj, boundaries=False, delimiter=';'):
     """
     regs = []
     l = linear_obj
-    for n in range(len(Match.groups())+1):
-        span = Match.span(n)
+    for span in Match.regs:
         # (-1, -1) used for groups that did not contibute to the match
         if span == (-1, -1):
             regs.append(span)
             continue
+
+        # Did it match a string-initial empty string?
+        elif span == (0, 0):
+            regs.append(span)
+            continue
+
+        # Did it match a string-final empty string?
+        elif span == (len(Match.string), len(Match.string)):
+            idx = len(l.original)
+            regs.append((idx, idx))
+            continue
+
         else:
             span_start = l.lin2orig_span[span[0]][0]
 
-        # re.MATCH object's span end is index *after* final character,
-        # so, we need to subtract one to get the index of the character 
-        # to map back to the original, then add one to the result to 
-        # get the index after this character
-        span_end = l.lin2orig_span[span[1]-1][1]
-
-        regs.append((span_start, span_end))
+            # re.MATCH object's span end is index *after* final character,
+            # so, we need to subtract one to get the index of the character 
+            # to map back to the original, then add one to the result to 
+            # get the index after this character
+            span_end = l.lin2orig_span[span[1]-1][1]
+            regs.append((span_start, span_end))
     
     return tuple(regs)
 
@@ -868,8 +951,7 @@ class KRE_Match:
     both the original and modified strings created by kre.
     """
     def __init__(self, endpos = None, pos = 0, re = None, regs = None,
-            string = None, kre = None, lin2del = None, 
-            linear = None, Match=None):
+            string = None, lin2del = None, linear = None, Match=None):
        
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
@@ -884,7 +966,6 @@ class KRE_Match:
         self.lastgroup = self._get_lastgroup()
    
         #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
-        self.kre = kre #modified KRE_Pattern
         self.linear = linear
 
         # Following maps linear indices to original string indices
@@ -893,6 +974,9 @@ class KRE_Match:
     def __repr__(self):
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
                 self.span(), self.string[self.span()[0]:self.span()[1]])
+
+    def __getitem__(self, group):
+        return self.group(group)
 
 
     def expand() -> str:
@@ -921,10 +1005,24 @@ class KRE_Match:
         Return subgroup(s) of the match by indices or names.
         For 0 returns the entire match.
         """
+        res = []
+
         if not args:
             args = [0,]
-        res = [self.string[self.span(arg)[0]:self.span(arg)[1]] or None 
-                    for arg in args]
+        for arg in args:
+            idx = arg
+            # convert named groups to group indices
+            if isinstance(idx, str):
+                idx = self.re.groupindex[idx]
+            # non-matching capture group?
+            if self.regs[idx] == (-1, -1):
+                res.append(None)
+            # empty string match? (see discussion on special treatment)
+            elif self.Match.group(idx) == '':
+                res.append('')
+            else:
+                res.append(self.string[slice(*self.regs[idx])])
+
         if len(res) == 1:
             return res[0]
         else:
@@ -952,11 +1050,11 @@ class KRE_Match:
         participate in the match
         """
         g = []
-        for n in range(1, len(self.Match.groups())+1):
-            if self.span(n) == (-1, -1):
+        for n in range(1, len(self.regs)):
+            if self.group(n) == None:
                 g.append(default)
             else:
-                g.append(self.string[self.span(n)[0]:self.span(n)[1]])
+                g.append(self.group(n))
         return tuple(g)
 
     def span(self, *args) -> tuple:
