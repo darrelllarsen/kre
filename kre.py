@@ -403,9 +403,7 @@ class KRE_Pattern:
                 # pass in boundaries or delimiter here.
                 sub_match = self.search(ls.linear, pos)
 
-                source_string_span = _get_regs(sub_match, 
-                        ls, boundaries=boundaries,
-                        delimiter=delimiter)[0]
+                source_string_span = _get_regs(sub_match, ls)[0]
                 match_list.append(
                         string[source_string_span[0]:source_string_span[1]]
                         )
@@ -812,8 +810,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
             linear = ls.linear,
             pos = pos_args[0],
             endpos = pos_args[1],
-            regs = _get_regs(Match, ls,
-                boundaries=boundaries, delimiter=delimiter),
+            regs = _get_regs(Match, ls),
             lin2del = ls.lin2del,
             Match = Match,
             )
@@ -893,7 +890,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
 # The present implementation adopts method (2).
 
 
-def _get_regs(Match, linear_obj, boundaries=False, delimiter=';'):
+def _get_regs(Match, linear_obj):
     # TODO: update doc
     """
     Map the index positions of the match to their corresponding 
