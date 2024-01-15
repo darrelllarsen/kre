@@ -162,7 +162,7 @@ class KRE_Pattern:
     def __init__(self, pattern, flags):
         self.pattern = pattern #original Korean, unlinearized
         self.flags = flags
-        self.linear = _Linear(pattern).linear #linear input to compile
+        self.linear = Mapping(pattern).linear #linear input to compile
         self.Pattern = re.compile(self.linear, flags) # re.Pattern obj
         self.groups = self.Pattern.groups
         self.groupindex = self.Pattern.groupindex
@@ -236,16 +236,13 @@ class KRE_Pattern:
                 preceding/following characters to create syllables)
         """
         # Linearize string
-        ls = _Linear(string, 
+        ls = Mapping(string, 
                 boundaries=boundaries,
                 delimiter=delimiter,
                     )
         
         # Find the spans where substitutions will occur.
-
         matches = self.finditer(ls.linear)
-        #matches = self.finditer(ls.linear,
-        #        boundaries=boundaries, delimiter=delimiter)
 
         # Iterate over matches to extract subbed spans from delimited string
 
@@ -335,7 +332,7 @@ class KRE_Pattern:
                 if syllabify == 'minimal': 
                     output += KO.syllabify(new_text)
                 elif syllabify == 'extended':
-                    new_text = _Linear(new_text).linear
+                    new_text = Mapping(new_text).linear
                     if safe_text[n+1]:
                         post = safe_text[n+1][0]
                         safe_text[n+1] = safe_text[n+1][1:]
@@ -352,7 +349,7 @@ class KRE_Pattern:
                 else:
                     output += new_text
         if syllabify == 'full':
-            output = KO.syllabify(_Linear(output).linear)
+            output = KO.syllabify(Mapping(output).linear)
         if syllabify == 'none':
             pass
 
@@ -446,7 +443,7 @@ class KRE_Pattern:
         Perform processes common to search, match, fullmatch, findall,
         and finditer
         """
-        ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
+        ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
         lin_args = self._process_pos_args(ls, *args)
 
         return ls, lin_args
@@ -485,7 +482,7 @@ class KRE_Pattern:
 
         return tuple(output)
 
-class _Linear:
+class Mapping:
     """
     Contains three levels of representation of the input, maps between
     the levels, and methods for navigation, string extraction, and
@@ -782,8 +779,8 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
         for n, arg in enumerate(args):
             pos_args[n] = arg
 
-    ls = _Linear(string, boundaries=boundaries, delimiter=delimiter)
-    lp = _Linear(pattern)
+    ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
+    lp = Mapping(pattern)
     match_obj = KRE_Match(
             re = re.compile(pattern), 
             string = string, 
@@ -878,7 +875,7 @@ def _get_regs(Match, linear_obj):
 
     Args:
         Match: re.Match object carried out over the linearized text
-        linear_obj: _Linear object
+        linear_obj: Mapping object
 
     Returns:
         list: a list containing the corresponding span positions in the
@@ -938,7 +935,7 @@ class KRE_Match:
         self.pos = pos #int
         self.re = re #SRE_Pattern
         self.regs = regs #tuple
-        self.endpos =  endpos # int; last index pos==len(self.string)
+        self.endpos =  endpos # int
         self.lastindex = Match.lastindex
         self.lastgroup = self._get_lastgroup()
    
