@@ -741,26 +741,6 @@ class _Linear:
     def get_syl_end(self, idx):
         return self.get_syl_span(idx)[1]
 
-    def get_original(self, *args): # REMOVE or RENAME
-        """
-        Maps syl2original span to original string
-
-        Args:
-            1-2 integers for start (and end) of syllable/boundary span
-            If 1 arg only, assumes span length of 1
-        """
-        if len(args) == 1:
-            args = (args[0], args[0]+1)
-
-        start = self.del2orig[args[0]]
-        end = self.del2orig[args[1]]
-
-        output = ''.join(
-                letter for letter in self.original[start:end]
-                if letter != None
-                )
-        return output
-
     def show_original_alignment(self):
         print('Index\tOriginal\torig2del_span\tdel2orig\tdel2orig_span\tDelimited\tdel2lin_span\tLinear')
         for n, idx in enumerate(self.del2orig):
