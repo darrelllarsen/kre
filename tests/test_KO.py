@@ -1,5 +1,5 @@
 import pytest
-import korean.KO as KO
+import kre.KO as KO
 
 ### Test hidden functions
 def test_get_split_values():
