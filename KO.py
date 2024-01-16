@@ -62,14 +62,14 @@ def _get_letters(value_set: Sequence[int, int, int]) -> tuple[str,str,str]:
         (3, 0, 9) --> ('ㄷ', 'ㅏ', 'ㄺ')
     """
 
-    for key in initials:
-        if initials[key][0] == value_set[0]:
+    for key in INITIALS:
+        if INITIALS[key][0] == value_set[0]:
             init = key
-    for key in medials:
-        if medials[key][0] == value_set[1]:
+    for key in MEDIALS:
+        if MEDIALS[key][0] == value_set[1]:
             mid = key
-    for key in finals:
-        if finals[key][0] == value_set[2]:
+    for key in FINALS:
+        if FINALS[key][0] == value_set[2]:
             fin = key
     return (init, mid, fin)
 
@@ -90,10 +90,10 @@ def _get_combined_value(
     Example:
         'ㄷ', 'ㅏ', 'ㄺ' --> 45805 
     """
-    output = 44032 + initials[initial][0]*588 + medials[medial][0]*28
+    output = 44032 + INITIALS[initial][0]*588 + MEDIALS[medial][0]*28
     
     if final:
-        output += finals[final][0]
+        output += FINALS[final][0]
 
     return output
 
@@ -143,8 +143,8 @@ def _split_coda(final: str) -> str:
         a string containing the split letters or the input if not a 
         complex coda
     """
-    if final in combined_finals.keys():
-        final = combined_finals[final]
+    if final in COMBINED_FINALS.keys():
+        final = COMBINED_FINALS[final]
 
     return final
 
@@ -159,8 +159,8 @@ def _combine_coda(final: str) -> str:
         the character represent the complex coda/final or the input if
         not a complex coda
     """
-    if final in split_finals.keys():
-        final = split_finals[final]
+    if final in SPLIT_FINALS.keys():
+        final = SPLIT_FINALS[final]
 
     return final
 
@@ -233,32 +233,32 @@ def syllabify(text) -> str:
 
         elif not buffer:
             # only accept an onset letter
-            if char not in initials.keys():
+            if char not in INITIALS.keys():
                 output += char
             else:
                 buffer = char
             continue
 
         elif len(buffer) == 1:
-            if char in medials.keys():
+            if char in MEDIALS.keys():
                 buffer += char
             else:
                 output += buffer
-                if char in initials.keys():
+                if char in INITIALS.keys():
                     buffer = char
                 else:
                     buffer = ''
             continue
 
         elif len(buffer) == 2:
-            if char in combined_finals.keys():
+            if char in COMBINED_FINALS.keys():
                 output += combine(buffer + char)
                 buffer = ''
-            elif char in finals.keys():
+            elif char in FINALS.keys():
                 buffer += char
             else:
                 output += combine(buffer)
-                if char in initials.keys():
+                if char in INITIALS.keys():
                     buffer = char
                 else:
                     output += char
@@ -266,12 +266,12 @@ def syllabify(text) -> str:
             continue
 
         elif len(buffer) == 3: 
-            if (buffer[-1] + char) in split_finals.keys():
+            if (buffer[-1] + char) in SPLIT_FINALS.keys():
                 buffer += char
-            elif char in initials.keys():
+            elif char in INITIALS.keys():
                 output += combine(buffer)
                 buffer = char
-            elif char in medials.keys():
+            elif char in MEDIALS.keys():
                 output += combine(buffer[:-1])
                 buffer = buffer[-1] + char
             else:
@@ -280,10 +280,10 @@ def syllabify(text) -> str:
             continue
         
         elif len(buffer) == 4:
-            if char in initials.keys():
+            if char in INITIALS.keys():
                 output += combine(buffer)
                 buffer = char
-            elif char in medials.keys():
+            elif char in MEDIALS.keys():
                 output += combine(buffer[:-1])
                 buffer = buffer[-1] + char
             else:
@@ -572,9 +572,9 @@ def toYale(text, syllable=None, WO=False, U=False, strict=False) -> str:
     for char in text:
         if isHangul(char) and isSyllable(char):
             letters = split(char)
-            onset = initials[letters[0]][1]
-            nucleus = medials[letters[1]][1]
-            coda = finals[letters[2]][1]
+            onset = INITIALS[letters[0]][1]
+            nucleus = MEDIALS[letters[1]][1]
+            coda = FINALS[letters[2]][1]
 
             if WO == True and nucleus == 'o':
                 nucleus = 'wo'
