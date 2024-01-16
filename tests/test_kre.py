@@ -1,5 +1,5 @@
 import pytest, re
-import korean.kre as kre
+import kre.kre as kre
 
 arirang = "아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다."
 
