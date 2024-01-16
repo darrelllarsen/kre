@@ -56,7 +56,7 @@ TODO:
 """
 
 import re
-from . import KO
+from . import tools
 
 
 ### Public interface
@@ -295,7 +295,7 @@ class KRE_Pattern:
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
 
         # Extract the text from the unchanged indices so we can return them
-        # without change. (If we use KO.syllabify to reconstruct the entire
+        # without change. (If we use tools.syllabify to reconstruct the entire
         # string, inputs like 가ㅎ (linearized to ㄱㅏㅎ) would be returned 
         # as 갛 even if they weren't matches for substitution. We want to 
         # avoid this.) 
@@ -336,26 +336,26 @@ class KRE_Pattern:
             if n < len(subs):
                 new_text = subs[n]['subbed_syl']
                 if syllabify == 'minimal': 
-                    output += KO.syllabify(new_text)
+                    output += tools.syllabify(new_text)
                 elif syllabify == 'extended':
                     new_text = Mapping(new_text).linear
                     if safe_text[n+1]:
                         post = safe_text[n+1][0]
                         safe_text[n+1] = safe_text[n+1][1:]
-                        if KO.isSyllable(post):
-                            post = ''.join(KO.split(post))
+                        if tools.isSyllable(post):
+                            post = ''.join(tools.split(post))
                         new_text += post
                     if output:
                         pre = output[-1]
                         output = output[:-1]
-                        if KO.isSyllable(pre):
-                            pre = ''.join(KO.split(pre))
+                        if tools.isSyllable(pre):
+                            pre = ''.join(tools.split(pre))
                         new_text = pre + new_text
-                    output += KO.syllabify(new_text)
+                    output += tools.syllabify(new_text)
                 else:
                     output += new_text
         if syllabify == 'full':
-            output = KO.syllabify(Mapping(output).linear)
+            output = tools.syllabify(Mapping(output).linear)
         if syllabify == 'none':
             pass
 
@@ -606,7 +606,7 @@ class Mapping:
         just_saw_delimiter = False
 
         for char_ in self.original:
-            if KO.isHangul(char_):
+            if tools.isHangul(char_):
                 
                 # add delimiter in front of Korean syllable
                 if self.boundaries==True and not just_saw_delimiter:
@@ -650,10 +650,10 @@ class Mapping:
         lin_idx = 0
 
         for char_ in self.delimited:
-            if KO.isSyllable(char_):
+            if tools.isSyllable(char_):
                 
                 # append the linearized string
-                for letter in ''.join(KO.split(char_, split_coda=True)):
+                for letter in ''.join(tools.split(char_, split_coda=True)):
                     lin_str += letter
                     lin2del_.append(lin_idx)
 
