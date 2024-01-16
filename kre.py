@@ -162,10 +162,16 @@ class KRE_Pattern:
     def __init__(self, pattern, flags):
         self.pattern = pattern #original Korean, unlinearized
         self.flags = flags
-        self.linear = Mapping(pattern).linear #linear input to compile
+        self.mapping = Mapping(pattern)
+        self.linear = self.mapping.linear #linear input to compile
         self.Pattern = re.compile(self.linear, flags) # re.Pattern obj
         self.groups = self.Pattern.groups
-        self.groupindex = self.Pattern.groupindex
+
+        # Extract from compiled non-linearized string so access format
+        # can match input format
+        self._re = re.compile(self.pattern)
+        #self.groupindex = self.Pattern.groupindex
+        self.groupindex = self._re.groupindex
 
     def __repr__(self):
         return self.__str__()
@@ -762,6 +768,7 @@ class Mapping:
 
 def _make_match_object(pattern, string, Match, *args, boundaries=False, 
         delimiter=';'):
+    # TODO: need to pass in flags as well
     """
     Instantiates a KRE_Match object
 
@@ -782,14 +789,16 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
     lp = Mapping(pattern)
     match_obj = KRE_Match(
-            re = re.compile(pattern), 
-            string = string, 
+            #re = re.compile(pattern),
+            re = compile(pattern),
+            string = string,
             linear = ls.linear,
             pos = pos_args[0],
             endpos = pos_args[1],
             regs = _get_regs(Match, ls),
-            lin2del = ls.lin2del,
             Match = Match,
+            string_mapping = ls,
+            pattern_mapping = lp,
             )
     return match_obj 
 
@@ -925,7 +934,8 @@ class KRE_Match:
     both the original and modified strings created by kre.
     """
     def __init__(self, endpos = None, pos = 0, re = None, regs = None,
-            string = None, lin2del = None, linear = None, Match=None):
+            string = None, linear = None, Match=None,
+            string_mapping=None, pattern_mapping=None):
        
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
@@ -933,7 +943,8 @@ class KRE_Match:
 
         self.string = string
         self.pos = pos #int
-        self.re = re #SRE_Pattern
+        self.re = re # KRE_Pattern object (kre.compile)
+        self._re = self.re.Pattern #SRE_Pattern (re.compile)
         self.regs = regs #tuple
         self.endpos =  endpos # int
         self.lastindex = Match.lastindex
@@ -941,9 +952,8 @@ class KRE_Match:
    
         #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
         self.linear = linear
-
-        # Following maps linear indices to original string indices
-        self.lin2del = lin2del
+        self.string_mapping = string_mapping
+        self.pattern_mapping = pattern_mapping
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%s, match='%s'>" % (
