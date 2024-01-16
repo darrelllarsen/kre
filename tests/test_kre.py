@@ -25,6 +25,10 @@ def test_match():
     assert res.span() == (0,24)
     assert res.start() == 0
     assert res.end() == 24
+    res = kre.match(r"ㅎ", "한글") # 1st letter of 1st syllable
+    assert res.span() == (0,1)
+    res = kre.match(r"ㅏ", "한글") # 2nd letter of 1st syllable
+    assert res == None
 
 def test_fullmatch():
     pass
@@ -113,7 +117,6 @@ def test_escape():
     pass
 
 ### KRE_Pattern Method Calls
-
 def test_kre_pattern_search():
     m = kre.compile('ㅏㄴ[ㄱ-ㅣ ]+독')
     res = m.search(news)
@@ -133,8 +136,38 @@ def test_kre_pattern_match():
     assert res.start() == 0
     assert res.end() == 24
 
+def test_kre_pattern_match_with_pos():
+    p = kre.compile(r'ㅏ')
+    assert p.match("한글") == None
+    assert p.match("한글", 0).span() == (0,1)
+    assert p.match("한글", 1) == None
+
+def test_kre_pattern_match_with_pos_and_boundaries():
+    # Test if pos expands to include preceding boundary
+    # No boundaries in pattern
+    p = kre.compile(r"ㄱ")
+    p.match("한글", 0, boundaries=True) == None
+    p.match("한글", 1, boundaries=True).span() == (1,2)
+    
+    # Preceding boundary in pattern
+    p = kre.compile(r";ㄱ")
+    p.match("한글", 1, boundaries=True).span() == (1,2)
+    
+    # Following boundary in pattern
+    p = kre.compile(r"ㄱ;")
+    p.match("한글", 1, boundaries=True) == None
+    p = kre.compile(r"ㄹ;")
+    p.match("한글", 1, boundaries=True).span() == (1,2)
+
 def test_kre_pattern_fullmatch():
     pass
+
+def test_kre_pattern_fullmatch_with_pos_and_boundaries():
+    p = kre.compile(r"ㅡㄹ")
+    p.match("한글", 1, boundaries=True) == None
+    p = kre.compile(r"ㅡㄹ;")
+    p.match("한글", 1, boundaries=True).span == (1,2)
+
 
 def test_kre_pattern_sub():
     m = kre.compile('ㄴ다')
@@ -149,6 +182,16 @@ def test_kre_pattern_subn():
     m = kre.compile(';느')
     res = m.subn(';나가', nonsense, boundaries=True)
     assert res == ('할ㄱ으하나가나갈근ㅡ', 2)
+
+    # syllable-final boundary in pattern and sub
+    m = kre.compile('[ㄱ|ㄴ];')
+    res = m.subn('ㅁ;',nonsense, boundaries=True)
+    assert res == ('할ㅁ으하느늘금ㅡ', 2)
+
+    # syllable-final boundary in pattern but not sub
+    m = kre.compile('[ㄱ|ㄴ];')
+    res = m.subn('ㅁ',nonsense, boundaries=True)
+    assert res == ('할ㅁ으하느늘그므', 2)
 
     m = kre.compile('ㅏ')
     res = m.subn('ㅗ',nonsense)
@@ -212,6 +255,25 @@ def test_kre_pattern_finditer():
 
 
 ### KRE_Match object attributes and functions
+
+def test_kre_match_special_cases():
+    # The following includes a named group, unmatched capturing group,
+    # and empty string matching group.
+    p = kre.compile(r"a(?P<f>f)(p)?(.*?)")
+    m = p.search('sdaflkj')
+    re_p = re.compile(r"a(?P<f>f)(p)?(.*?)")
+    re_m = re_p.search('sdaflkj')
+    assert m.regs == re_m.regs
+    assert m.groups() == re_m.groups()
+    for n in range(len(m.regs)):
+        assert m.group(n) == re_m.group(n)
+
+
+    # Test case: matches of empty strings, but at syllable boundaries
+    # and within syllables. For such cases, re module returns span of
+    # length 0 (pos==endpos), whereas kre returns length 1 when empty
+    # string is syllable-internal.
+
 def test_kre_match_object():
     # Test case: match of search is syllable, so result should be 
     # identical to standard re search
@@ -376,9 +438,51 @@ def test_kre_match_object4():
     # not yet implemented
     #assert m.expand() == re_m.expand()
 
-### _Linear
-def test_kre_linear():
-    ls = kre._Linear('This is 한글ㅋㅋ.', boundaries=True)
+def test_kre_match_object5():
+    # Test case: match of subsyllables pattern that crosses syllables. 
+    # Result should be identical to standard re search off all involved
+    # syllables
+
+    # Pattern includes named and unnamed groups, as well as a named
+    # group with 0 matches
+    # kre searches for subsyllables should have same results as re
+    # searches for syllables containing said subsyllables
+    p = kre.compile('(?P<첫째>ㄱ)(.ㅡ).*(?P<둘째>그)(?P<h>h)?')
+    m = p.search(nonsense)
+    re_p = re.compile('(?P<첫째>ㄱ)(으).*(?P<둘째>근)(?P<h>h)?')
+    re_m = re_p.search(nonsense)
+
+    # attributes
+    assert m.pos == re_m.pos
+    assert m.endpos == re_m.endpos
+    # assert m.re == re_m.re # WILL CHANGE
+    assert m.regs == re_m.regs
+    assert m.string == re_m.string
+    assert m.lastgroup == re_m.lastgroup
+    assert m.lastindex == re_m.lastindex
+
+    # methods
+    assert m.end() == re_m.end()
+    assert m.start() == re_m.start()
+    assert m.groups() == re_m.groups()
+    assert m.span() == re_m.span()
+    # Change default value for unmatched groups (default is None)
+    assert m.groups('changed') == re_m.groups('changed')
+    for n in range(len(m.groups())+1):
+        assert m.end(n) == re_m.end(n)
+        assert m.start(n) == re_m.start(n)
+        assert m.group(n) == re_m.group(n)
+        assert m.span(n) == re_m.span(n)
+    assert m.groupdict() == re_m.groupdict()
+    # Change default value for unmatched named groups (default is None)
+    assert m.groupdict('changed') == re_m.groupdict('changed')
+
+    # not yet implemented
+    #assert m.expand() == re_m.expand()
+
+### Mapping class tests 
+def test_kre_mapping():
+    ls = kre.Mapping('This is 한글ㅋㅋ.', boundaries=True)
     assert ls.delimited == 'This is ;한;글;ㅋ;ㅋ;.'
     assert ls.del2orig == (0, 1, 2, 3, 4, 5, 6, 7, None, 8, None, 9, 
             None, 10, None, 11, None, 12)
