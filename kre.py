@@ -180,10 +180,10 @@ class KRE_Pattern:
         return "kre.compile(%s)" % repr(self.pattern)
 
     def search(self, string, *args, boundaries=False, delimiter=';'):
-        ls, lin_args = self._process(string, *args,
+        ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
-        match_ = self.Pattern.search(ls.linear, *lin_args)
+        match_ = self.Pattern.search(ls.linear, *pos_args)
 
         if match_:
             return _make_match_object(self.pattern, string, match_,
@@ -195,32 +195,32 @@ class KRE_Pattern:
             return match_
 
     def match(self, string, *args, boundaries=False, delimiter=';'):
-        ls, lin_args = self._process(string, *args,
+        ls, pos_args, iter_span = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
-
-        match_ = self.Pattern.match(ls.linear, *lin_args)
-
-        if match_:
-            return _make_match_object(self.pattern, string, match_,
-                    *args,
-                    boundaries=boundaries,
-                    delimiter=delimiter,
-                    )
+       
+        for span in iter_span:
+            match_ = self.Pattern.match(ls.linear, *span)
+            if match_:
+                return _make_match_object(self.pattern, string, match_,
+                        *args,
+                        boundaries=boundaries,
+                        delimiter=delimiter,
+                        )
         else:
             return match_
 
     def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
-        ls, lin_args = self._process(string, *args,
+        ls, pos_args, iter_span = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
-        match_ = self.Pattern.fullmatch(ls.linear, *lin_args)
-
-        if match_:
-            return _make_match_object(self.pattern, string, match_,
-                    *args,
-                    boundaries=boundaries,
-                    delimiter=delimiter,
-                    )
+        for span in iter_span:
+            match_ = self.Pattern.fullmatch(ls.linear, *span)
+            if match_:
+                return _make_match_object(self.pattern, string, match_,
+                        *args,
+                        boundaries=boundaries,
+                        delimiter=delimiter,
+                        )
         else:
             return match_
 
@@ -382,7 +382,6 @@ class KRE_Pattern:
             boundaries=boundaries, delimiter=delimiter, 
             syllabify=syllabify), sub_count)
 
-
     def split(self, string, maxsplit=0, boundaries=False, 
             delimiter=';'):
         """
@@ -391,15 +390,15 @@ class KRE_Pattern:
         raise NotImplementedError 
 
     def findall(self, string, *args, boundaries=False, delimiter=';'):
-        ls, lin_args = self._process(string, *args,
+        ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
-        match_ = self.Pattern.findall(ls.linear, *lin_args)
+        match_ = self.Pattern.findall(ls.linear, *pos_args)
 
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
         if match_:
-            pos = lin_args[0]
+            pos = pos_args[0]
             match_list = []
             for item in match_:
                 # Because we've already linearized the string, we don't
@@ -425,14 +424,14 @@ class KRE_Pattern:
             returns list_iterator rather than callable iterator (see TODOs)
         """
 
-        ls, lin_args = self._process(string, *args,
+        ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
-        match_ = self.Pattern.finditer(ls.linear, *lin_args)
+        match_ = self.Pattern.finditer(ls.linear, *pos_args)
 
         # For all re.Match objects in match_
         if match_:
-            pos = lin_args[0]
+            pos = pos_args[0]
             match_list = []
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
@@ -450,26 +449,38 @@ class KRE_Pattern:
         and finditer
         """
         ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
-        lin_args = self._process_pos_args(ls, *args)
+        pos_args, iter_span = self._process_pos_args(ls, *args)
 
-        return ls, lin_args
+        return ls, pos_args, iter_span
 
     def _process_pos_args(self, _linear, *args):
         """
         Map the pos and endpos args to their corresponding linear positions.
 
         When boundaries == True, pos and endpos expand to include boundaries
+
+        Returns:
+            tuple: pos and endpos, mapped to position in linear string
+            iter_span (tuple of tuples): tuples of indices for `match` 
+                and `fullmatch` to iterate through, if any (empty if no
+                pos arg was provided)
         """
         output = []
         map_ = _linear.lin2orig
         orig_size = len(_linear.original)
+        iterate = True
+        iter_span = []
 
-        # Fill in missing args 
+        ### Fill in missing args
+        # No pos arg?
         if len(args) == 0:
+            iterate = False
             args = [0]
+        # No endpos arg? 
         if len(args) == 1:
             args = [args[0], len(map_)]
 
+        ### Limit pos / endpos to string length
         for arg in args:
             if 0 <= arg < orig_size:
                 output.append(map_.index(arg))
@@ -479,14 +490,27 @@ class KRE_Pattern:
             # Less than 0?
             else:
                 output.append(0)
+        
+        if iterate == True:
+            # which indices should be iterated through?
+            for n, item in enumerate(map_[output[0]:], output[0]):
+                if item == map_[output[0]]:
+                    iter_span.append(tuple([n, output[1]]))
+                else:
+                    break
+        else:
+            iter_span.append(output)
+
 
         # If pos is preceded by a boundary marker, expand to include it
         # No need to do this for endpos
         if output[0] > 0:
             if map_[output[0]-1] == None:
                 output[0] -= 1
+                if iterate == True:
+                    iter_span = [tuple(output)] + iter_span
 
-        return tuple(output)
+        return tuple(output), tuple(iter_span)
 
 class Mapping:
     """
