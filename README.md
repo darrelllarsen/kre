@@ -202,18 +202,20 @@ re.Match.regs[n]. More specifically, for match m and integer n:
 
 This isn't as simple for kre, because empty string matches can occur
 *between* mapped indices, not just *at* indices. Thus, the following
-is expected:
+is expected. (Note: 한글 (length 2) linearizes to ㅎㅏㄴㄱㅡㄹ (length 6))
+
 ```
 # RE:
 re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
 re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
-# KRE:
-# (note: 한글 (length 2) linearizes to ㅎㅏㄴㄱㅡㄹ (length 6))
-kre.search(r"(p?)", "한글"): regs -> ((0,0), (0,0)) | groups -> ('',)
-kre.search(r".(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
-kre.search(r"..(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
+# KRE: NOT ACTUAL IMPLEMENTATION!
+# kre.search(r"(p?)", "한글"): regs -> ((0,0), (0,0)) | groups -> ('',)
+kre.search(r".(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',) # -> ('',) in actual implementation
+kre.search(r"..(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',) # -> ('',) in actual implementation
+
 kre.search(r"...(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-kre.search(r"....(p?)", "한글"): regs -> ((0,2), (1,2)) | groups -> ('글',)
+kre.search(r"....(p?)", "한글"): regs -> ((0,2), (1,2)) | groups -> ('글',) # -> ('',) in actual implementation
+
 ```
 
 On the one hand, the span is correct in each case (empty string
