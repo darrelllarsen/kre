@@ -1,28 +1,29 @@
-# korean
-Tools for working with Korean language text.
+# kre
+Subcharacter-level regular expressions with Korean text.
 
-## kre.py:
+kre supplements re from the Python Standard Library by allowing the user to perform regular expression searches and substitutions on Korean text at the level of individual letters. It does so by mapping the standard syllable-based characters to a letter-based mapping prior to carrying out the search or substitution. A successful search returns a KRE_Match object, a sort of extended RE_Match object which allows the user to obtain match indices based on the original syllable-structured text. Substitutions automatically resyllabify the text to produce standard syllable-based output (where possible), with various levels of resyllabification possible. Function/method and attribute implementation is designed to match that of re.py wherever possible.
 
-kre.py supplements re.py from the Python Standard Library by allowing the user to perform regular expression searches on Korean text at the level of individual letters by breaking up the standard syllable-based character mapping to a letter-based mapping prior to carrying out the search. It returns a KRE_Match object, a sort of extended RE_Match object which allows the user to obtain match indices based on the original syllable-structured text. Function/method and attribute implementation is designed to match that of re.py wherever possible. 
+kre supplements re by adding an option to reference syllable boundaries in search patterns. 
 
 ### Functions
-With the exception of `split`, all public re functions (`search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer`, `compile`, `purge`, `escape`) have been implemented as stand-alone functions. `search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer` methods are also callable from a compiled `KREPattern` object.
+With the exception of `split`, all public re functions (`search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer`, `compile`, `purge`, `escape`) and Pattern class methods (`search`, `match`, `fullmatch`, `sub`, `subn`, `findall`, `finditer`) have been implemented.
 
-- Supplemental for search/match/find functions are the keyword arguments `boundaries` and `boundary_marker`. These have not yet been implemented with the `sub/subn` functions.
+- Supplemental for search/match/find functions are the keyword arguments `boundaries` and `boundary_marker`.
 - Supplemental for the `sub/subn` functions is the keyword argument `syllabify`.
 
-### Objects
-The most essential methods and attributes of Match objects have been implemented in the KRE_Match object, along with some supplementary attributes.
-- Currently implemented for KRE_Match objects: `re`, `regs`, `string`, `end`, `group`, `groupdict`, `groups`, `span`, `start`, `__repr__`
-- To be implemented: `endpos`, `pos`, `lastgroup`, `lastindex`, `expand`
-- Supplemental in KRE_Match objects: `Match` (the underlying re.Match object resulting from applying a `re` function to the linearized input string)
+### KRE_Match Objects
+With the exception of `expand`, all public methods and attributes of Match objects have been implemented in the KRE_Match object, along with some supplementary attributes.
+- Currently implemented for KRE_Match objects: `re`, `regs`, `string`, `end`, `group`, `groupdict`, `groups`, `span`, `start`, `endpos`, `pos`, `lastgroup`, `lastindex`, `__repr__`, `__getitem__`
+
+### Not Yet Implemented
+Flags
 
 ### Additional Limitations
 kre works for modern Korean using the current Unicode default for Korean syllables ([Ac00-D7AF](https://www.unicode.org/charts/PDF/UAC00.pdf)). This will not work with other Korean unicode blocks (i.e., syllable characters from those blocks will not be converted to sequences of letters) or older Korean varieties (which contain different characters and allow different combinations).
 
 
 ### Examples
-As kre is intended to mimic re in most aspects, refer to the [re documentation](https://docs.python.org/3/library/re.html#regular-expression-objects) for usage. The following examples highlight the useful of kre for Korean-language data.
+As kre is intended to mimic re in most aspects, refer to the [re documentation](https://docs.python.org/3/library/re.html) for usage. The following examples highlight the useful of kre for Korean-language data.
 
 ```
 import kre
