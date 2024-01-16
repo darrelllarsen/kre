@@ -154,7 +154,7 @@ print(f"ㄹ.;ㄹ sequences (boundaries=True): {kre.findall('ㄹ.;ㄹ', arirang, 
 print(f";ㄹ.ㄹ; sequences (boundaries=True): {kre.findall(';ㄹ.ㄹ;', arirang, boundaries=True)}")
 > ;ㄹ.ㄹ; sequences (boundaries=True): ['를']
 ```
-The semi-colon was chosen as the default boundary marker because it appears on Korean keyboards (thus is easy to type) yet is not commonly used in Korean writing, and it is not a special character in regular expression. Nonetheless, the boundary marker can be set to any other character by setting `delimiter` to a different character. (Using special regular expression characters is not recommended.)
+The semi-colon was chosen as the default boundary marker because it appears on Korean keyboards (thus is easy to type) yet is not commonly used in Korean writing, and it is not a special character in regular expressions. Nonetheless, the boundary marker can be set to any other character by setting `delimiter` to a different character. (Using special regular expression characters is not recommended.)
 ```
 print(f"Syllable-final ㄹ: {kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')}")
 > Syllable-final ㄹ: ['를', '발']
@@ -309,14 +309,10 @@ Other than `match`, for all methods of compiled (Pattern) objects that accept `p
 >>> p.match("한글", 1, boundaries=True) # no match
 ```
 
-## KO.py:
+## tools.py:
 
-KO.py contains basic tools for detecting Korean language text, splitting Korean syllables up into individual Korean letters, combining Korean letters into Korean syllables, and Romanizing Korean text using Yale Romanization.  Additional Romanization types may be implemented in the future.
+tools.py contains basic tools for detecting Korean language text, splitting Korean syllables up into individual Korean letters, combining Korean letters into Korean syllables, and Romanizing Korean text using Yale Romanization.  Additional Romanization types may be implemented in the future.
 
 ## constants.py
 
-constants.py contains constants used by KO
-
-## Dependencies
-kre depends on re (standard library), KO (this package)
-KO depends on constants (this package)
+constants.py contains constants used by tools.py
