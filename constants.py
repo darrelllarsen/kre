@@ -27,6 +27,6 @@ COMBINED_FINALS = {'ㄳ':'ㄱㅅ', 'ㄵ':'ㄴㅈ','ㄶ':'ㄴㅎ','ㄺ':'ㄹㄱ',
 
 SPLIT_FINALS = {val:key for key, val in COMBINED_FINALS.items()}
 
-### Section: Constants
-DIPTHONGS = '(ㅑㅒㅖㅛㅠㅘㅙㅚㅝㅞㅟㅢ)'
-TRAD_DIPTHONGS = '(ㅑㅒㅖㅛㅠㅘㅙㅝㅞㅟ)' # excludes ㅚ and ㅢ
+### Other constants
+DIPHTHONGS = ('ㅑ', 'ㅒ', 'ㅖ', 'ㅛ', 'ㅠ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅢ')
+TRAD_DIPHTHONGS = ('ㅑ', 'ㅒ', 'ㅖ', 'ㅛ', 'ㅠ', 'ㅘ', 'ㅙ', 'ㅝ', 'ㅞ', 'ㅟ') # excludes ㅚ and ㅢ
