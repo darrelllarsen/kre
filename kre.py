@@ -789,7 +789,6 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
     ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
     lp = Mapping(pattern)
     match_obj = KRE_Match(
-            #re = re.compile(pattern),
             re = compile(pattern),
             string = string,
             linear = ls.linear,
@@ -801,79 +800,6 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
             pattern_mapping = lp,
             )
     return match_obj 
-
-# Notes on regs and the present implementation:
-#
-# The Match.regs attribute is undocumented in the official docs. Here 
-# is an explanation of its use, followed by discussion of a problem kre
-# runs regarding regs (and groups) into when empty string matches occur.
-#
-# regs is a tuple of tuples of indices, where the first tuple contains
-# the span of the complete match, and each subsequent tuple represents 
-# the spans of the subgroups of the pattern. When the Match.span method
-# is called with an integer argument n, it returns regs[n]. When called
-# without an argument, Match.span returns regs[0]. Note that Match.span 
-# also accepts string arguments for named groups, thus it is not merely 
-# a redundant function for accessing the subelements of regs.
-#
-# Some matches can consist of an empty string, such as the following
-# patterns and resulting Match object attributes:
-# re.search(r".*?", "한글"): regs -> ((0,0),) | groups -> ()
-# re.search(r"..*?", "한글"): regs -> ((0,1),) | groups -> ()
-# re.search(r"한.*?", "한글"): regs -> ((0,1),) | groups -> ()
-# re.search(r"글.*?", "한글"): regs -> ((1,2),) | groups -> ()
-# re.search(r"(p?).*?", "한글"): regs -> ((0,1, (0,0)) | groups -> ('',)
-# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-# re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
-#
-# Note that while empty string matches return an empty string in groups, 
-# optional groups that don't participate in the span return None. 
-# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-# re.search(r".(p)?", "한글"): regs -> ((0,1), (-1,-1)) | groups -> (None,)
-#
-# The problem:
-# In the original implementation, re.Match.group(n) method presumably 
-# returns the substring corresponding to the pair of indices stored at 
-# re.Match.regs[n]. More specifically, for match m and integer n:
-# m.group(n) == m.string[slice(*m.regs[n])]
-# 
-# This isn't as simple for kre, because empty string matches can occur
-# *between* mapped indices, not just *at* indices. Thus, the following
-# is expected:
-# RE:
-# re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-# re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
-# KRE:
-# (note: 한글 (length 2) linearizes to ㅎㅏㄴㄱㅡㄹ (length 6))
-# kre.search(r"(p?)", "한글"): regs -> ((0,0), (0,0)) | groups -> ('',)
-# kre.search(r".(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
-# kre.search(r"..(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',)
-# kre.search(r"...(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-# kre.search(r"....(p?)", "한글"): regs -> ((0,2), (1,2)) | groups -> ('글',)
-#
-# On the one hand, the span is correct in each case (empty string
-# matches between syllables should have same start and end indices,
-# while the end indices for matches within syllables should be 1 greater
-# than the start indices). On the other hand, the groups method returns
-# a non-empty string for syllable-internal empty-string matches. This
-# latter fact may be desired (after all, kre is designed to return
-# full syllable matches for sub-syllabic matches), but for many cases
-# users will likely want to treat empty string matches different from
-# other matches (e.g., ignoring empty string matches). There are two
-# possible workarounds:
-# 1. Whenever a tuple in re.Match.regs contains identical start and end
-# indices, we can force them to map onto a single index. We then run into 
-# the question of whether to use the start or end index; for example,
-# the following search has two possible solutions:
-# ex. kre.search(r"(ㅎ)(p?).(ㄴ)", "한글"): 
-# option 1: regs -> ((0,1), (0,1), (0,0), (0,1))
-# option 2: regs -> ((0,1), (0,1), (1,1), (0,1))
-#
-# 2. Leave the indices as is, but add a condition to the groups
-# method to return an empty string for any group in the linearized
-# string that returned an empty string.
-#
-# The present implementation adopts method (2).
 
 
 def _get_regs(Match, linear_obj):
@@ -943,6 +869,7 @@ class KRE_Match:
 
         self.string = string
         self.pos = pos #int
+        # re, _re are based on non-linearized pattern
         self.re = re # KRE_Pattern object (kre.compile)
         self._re = self.re.Pattern #SRE_Pattern (re.compile)
         self.regs = regs #tuple
