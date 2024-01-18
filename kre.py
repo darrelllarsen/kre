@@ -378,8 +378,12 @@ class KRE_Pattern:
         """
         
         # Must limit substitutions to max of count if != 0
-        sub_count = len(self.findall(string,
-            boundaries=boundaries, delimiter=delimiter))
+        res = self.findall(string,
+            boundaries=boundaries, delimiter=delimiter)
+        if res:
+            sub_count = len(res)
+        else:
+            sub_count = 0
         if 0 < count < sub_count:
             sub_count = count
 
