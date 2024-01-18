@@ -198,7 +198,6 @@ def test_kre_pattern_subn():
     assert res == ('홁으호느늘근ㅡ', 2)
 
     ### Boundaries True/False pairs
-    # syllabify='none': result should be same
     m = kre.compile(r'ㅡ')
     m2 = kre.compile(r'ㅡㄴ')
     res = m.subn('ㅓ', nonsense, syllabify='none')
