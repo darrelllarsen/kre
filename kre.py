@@ -235,11 +235,13 @@ class KRE_Pattern:
         the syllabify options.
 
         syllabify options: 
-            'full' (linearize + syllabify entire string)
             'none' (affected characters are output without syllabification)
             'minimal' (affected characters are syllabified prior to output)
             'extended' (will attempt to combine affected characters with
-                preceding/following characters to create syllables)
+                the immediately preceding/following characters to create 
+                syllables when it minimizes stand-alone Korean letters)
+            'full' (linearize + syllabify entire string; deletes
+                    boundaries prior to syllabifying string)
         """
         # Linearize string
         ls = Mapping(string, 
@@ -354,14 +356,17 @@ class KRE_Pattern:
                     output += tools.syllabify(new_text)
                 else:
                     output += new_text
-        if syllabify == 'full':
-            output = tools.syllabify(Mapping(output).linear)
-        if syllabify == 'none':
-            pass
 
         # Remove the delimiter from the output
+        # This should precede 'full' syllabify option
         if boundaries == True:
             output = output.replace(delimiter, '')
+
+        if syllabify == 'full':
+            output = tools.syllabify(Mapping(output).linear)
+
+        if syllabify == 'none':
+            pass
 
         return output
 
