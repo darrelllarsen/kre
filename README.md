@@ -189,7 +189,8 @@ re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
 re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
 ```
 Note that while empty string matches return an empty string in groups, 
-optional groups that don't participate in the span return None. 
+optional groups that don't participate in a match return None and are 
+assigned the indices (-1,-1).
 ```
 re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
 re.search(r".(p)?", "한글"): regs -> ((0,1), (-1,-1)) | groups -> (None,)
@@ -227,8 +228,8 @@ a non-empty string for syllable-internal empty-string matches. This
 latter fact may be desired (after all, kre is designed to return
 full syllable matches for sub-syllabic matches), but for many cases
 users will likely want to treat empty string matches different from
-other matches (e.g., ignoring empty string matches). There are two
-possible workarounds:
+other matches (e.g., ignoring empty string matches). There are at least
+two possible workarounds:
 
 1. Whenever a tuple in re.Match.regs contains identical start and end
 indices, we can force them to map onto a single index. We then run into 
