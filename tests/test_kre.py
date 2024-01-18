@@ -197,18 +197,80 @@ def test_kre_pattern_subn():
     res = m.subn('ㅗ',nonsense)
     assert res == ('홁으호느늘근ㅡ', 2)
 
-    m = kre.compile('ㅡ')
+    ### Boundaries True/False pairs
+    # syllabify='none': result should be same
+    m = kre.compile(r'ㅡ')
+    m2 = kre.compile(r'ㅡㄴ')
     res = m.subn('ㅓ', nonsense, syllabify='none')
     assert res ==  ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
 
+    m = kre.compile('ㅡ')
+    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='none')
+    assert res ==  ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
+
+    # syllabify='miminal': result may differ for patterns that cross
+    # syllables
+    # same
     res = m.subn('ㅓ', nonsense, syllabify='minimal')
     assert res == ('할ㄱ어하너널건ㅓ', 5)
 
+    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='minimal')
+    assert res == ('할ㄱ어하너널건ㅓ', 5)
+
+    # different
+    res = m2.subn(r'ㅓㄴ', nonsense, syllabify="minimal")
+    assert res == ('할ㄱ으하너늘건ㅡ', 2)
+
+    res = m2.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="minimal")
+    assert res == ('할ㄱ으하느늘건ㅡ', 1)
+
+    # syllabify='extended': result may differ for patterns that cross
+    # syllables
+    # same
     res = m.subn('ㅓ', nonsense, syllabify='extended')
     assert res == ('할ㄱ어하너널거너', 5)
 
+    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='extended')
+    assert res == ('할ㄱ어하너널건ㅓ', 5)
+
+    # different
+    res = m2.subn(r'ㅓㄴ', nonsense, syllabify="extended")
+    assert res == ('할ㄱ으하너늘거느', 2)
+
+    res = m2.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="extended")
+    assert res == ('할ㄱ으하느늘건ㅡ', 1)
+
+    # syllabify='full'
+    # same
     res = m.subn('ㅓ', nonsense, syllabify='full')
     assert res == ('핡어하너널거너', 5)
+
+    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='full')
+    assert res == ('핡어하너널거너', 5)
+
+    # different
+    res = m2.subn('ㅓㄴ', nonsense, syllabify='full')
+    assert res == ('핡으하너늘거느', 2)
+
+    res = m2.subn('ㅓㄴ', nonsense, boundaries=True, syllabify='full')
+    assert res == ('핡으하느늘거느', 1)
+
+    # With boundaries=True, 'minimal' and 'extended' differ only when
+    # boundary from pattern is removed from repl argumenta
+    m3 = kre.compile(r'ㅡㄴ;')
+    m4 = kre.compile(r';ㅡ')
+    
+    res = m3.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="minimal")
+    assert res == ('할ㄱ으하느늘건ㅡ', 1)
+
+    res = m3.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="extended")
+    assert res == ('할ㄱ으하느늘거느', 1)
+
+    res = m4.subn(r'ㅓ', nonsense, boundaries=True, syllabify="minimal")
+    assert res == ('할ㄱ으하느늘근ㅓ', 1)
+
+    res = m4.subn(r'ㅓ', nonsense, boundaries=True, syllabify="extended")
+    assert res == ('할ㄱ으하느늘그너', 1)
 
 def test_kre_pattern_split():
     pass
