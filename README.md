@@ -90,46 +90,10 @@ print(f"All uninterrupted sequences of Korean: {kre.findall('[ㄱ-ㅣ]+', 'not K
 > All uninterrupted sequences of Korean: ['아리랑', '아리랑', '아라리요', '아리랑', '고개로', '넘어간다', '나를',
   '버리고', '가시는', '님은', '십리도', '못가서', '발병', '난다']
 ```
-
-#### Substitutions
-Let's change the verb endings from the narrative forms to a type of future tense.
-```
-print(f"Original: {arirang}")
-print(f"Revised:  {kre.sub('ㄴ다', 'ㄹ 거예요', arirang)}")
-> Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
-> Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요.
-```
-When carrying out substitutions in Korean, there is no guarantee that the result will be a sequence that can form a syllable block. There is also no requirement that the input contain only syllable blocks. When performing substitutions, kre allows the user to decide the extent to which kre should attempt to create syllables from the sequences through the keyword argument `syllabify` (options: 'none', 'minimal', 'extended' (default), 'full'). Except for 'full', any non-captured syllable blocks remain unaffected.
-
-*"Affected character"* refers to captured letters/characters and any other letters belonging to the same syllable in the input.
-- 'none': affected characters are ouput without syllabification. Unaffected characters are returned as they appeared in input.
-- 'minimal': affected characters are syllabified prior to output
-- 'extended': as in minimal, except attempts to combine affected characters with preceding/following character to create syllables
-- 'full': linearizes and resyllabifies the entire string, including all non-captured characters
-```
-nonsense = '할ㄱ으하느늘근ㅡ'
-kre.subn('느', '나가', nonsense)
-> ('할ㄱ으하나가나갈그나가', 3)
-
-kre.subn('ㅏ','ㅗ',nonsense)
-> ('홁으호느늘근ㅡ', 2)
-
-kre.subn('ㅡ','ㅓ', nonsense, syllabify='none')
-> ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
-
-kre.subn('ㅡ','ㅓ', nonsense, syllabify='minimal')
-> ('할ㄱ어하너널건ㅓ', 5)
-
-kre.subn('ㅡ','ㅓ', nonsense, syllabify='extended')
-> ('할ㄱ어하너널거너', 5)
-
-kre.subn('ㅡ','ㅓ', nonsense, syllabify='full')
-> ('핡어하너널거너', 5)
-```
-#### Re Extension: Syllable Boundaries
+#### `re` Extension: Syllable Boundaries
 Like syllabaries, Korean script encodes information not encoded in alphabetic writing systems: syllable boundaries (to some extent). We lose this information when linearizing the script, and although we could use a somewhat complex regular expression to capture the concept of a syllable boundary in Korean, kre makes it easy to capture syllable boundaries in regular expressions patterns.
 
-To do this, we include the argument `boundaries=True` (default is False) and then place a semi-colon `;` in the search pattern where we want to indicate a syllable boundary. There is no need to manually include semi-colons in the input string. (Note that `boundaries` is not currently implemented for the `sub/subn` functions.)
+To do this, we include the argument `boundaries=True` (default is False) and then place a delimiter (by default, the semi-colon `;`) in the search pattern where we want to indicate a syllable boundary. There is no need to manually include semi-colons in the input string. When using the `sub` or `subn` functions/methods, delimiters must be manually entered in the replacement *repl* argument, if desired.
 ```
 # Look for all ㄹ at the end of the syllable
 print(f"Syllable-final ㄹ: {kre.findall('ㄹ;', arirang, boundaries=True)}")
@@ -159,6 +123,82 @@ The semi-colon was chosen as the default boundary marker because it appears on K
 print(f"Syllable-final ㄹ: {kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')}")
 > Syllable-final ㄹ: ['를', '발']
 ```
+#### Substitutions
+Let's change the verb endings from the narrative forms to a type of future tense.
+```
+print(f"Original: {arirang}")
+print(f"Revised:  {kre.sub('ㄴ다', 'ㄹ 거예요', arirang)}")
+> Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
+> Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요.
+```
+When carrying out substitutions in Korean, there is no guarantee that the result will be a sequence that can form a syllable block. There is also no requirement that the input contain only syllable blocks. When performing substitutions, kre allows the user to decide the extent to which kre should attempt to create syllables from the sequences through the keyword argument `syllabify` (options: 'none', 'minimal', 'extended' (default), 'full'). Except for 'full', any non-captured syllable blocks remain unaffected.
+
+*"Affected character"* refers to captured letters/characters and any other letters belonging to the same syllable in the input.
+- 'none': affected characters are ouput without syllabification. Unaffected characters are returned as they appeared in input.
+- 'minimal': affected characters are syllabified prior to output
+- 'extended': as in minimal, except attempts to combine affected characters with immediately preceding/following characters to create syllables when it reduces the number of stand-alone letters
+- 'full': linearizes and resyllabifies the entire string, including all non-captured characters
+```
+nonsense = '할ㄱ으하느늘근ㅡ'
+kre.subn('느', '나가', nonsense)
+> ('할ㄱ으하나가나갈그나가', 3)
+
+kre.subn('ㅏ','ㅗ',nonsense)
+> ('홁으호느늘근ㅡ', 2)
+
+kre.subn('ㅡ','ㅓ', nonsense, syllabify='none')
+> ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
+
+kre.subn('ㅡ','ㅓ', nonsense, syllabify='minimal')
+> ('할ㄱ어하너널건ㅓ', 5)
+
+kre.subn('ㅡ','ㅓ', nonsense, syllabify='extended')
+> ('할ㄱ어하너널거너', 5)
+
+kre.subn('ㅡ','ㅓ', nonsense, syllabify='full')
+> ('핡어하너널거너', 5)
+```
+As noted above, the 'extended' option will attempt to reduce the number of stand-alone letters (seen above), but it will not combine eligible characters if doing so would increase the number of stand-alone letters. Below, ㅏ matches with the syllable 하, and the 'extended' setting makes the following letter, ㅇ, a potential candidate for combining together with 하. This would create 항ㅜ, increasing the number of stand-alone letters, thus ㅇ is not combined with 하.
+```
+kre.subn(r'ㅏ', 'ㅗ', '하우', syllabify="extended")
+> ('호우', 1)
+```
+In contrast, if ㅇ and ㅜ were already separated in the input string, the combination would be allowed, since they map to different input characters.
+```
+kre.subn(r'ㅏ', r'ㅗ', '하ㅇㅜ', syllabify="extended")
+> ('홍ㅜ', 1)
+```
+However, if ㅇ is also an affected character, ㅜ will belong to the extended domain, resulting in 호우.
+```
+kre.subn(r'ㅏㅇ', r'ㅗㅇ', '하ㅇㅜ', syllabify="extended")
+> ('호우', 1)
+```
+Note that some consonant sequences are available as single characters, and these behave different from the same sequence entered as separate letters for the reason explained above.
+```
+kre.subn(r"가", r"다", "가ㄹㄱ", syllabify="extended")
+> ('달ㄱ', 1)
+
+kre.subn(r"가", r"다", "가ㄺ", syllabify="extended")
+> ('닭', 1)
+```
+##### Substitutions with Boundaries
+When boundaries==True, delimiters are also subject to substitution (they can be added or deleted). These interact with the various syllabify options and thus produce different results than similar substitutions without the use of boundaries. Specifically, when boundaries==True, "extended" will only result in resyllabification when patterns include boundary symbols that are removed in the *repl* argument.
+```
+# Before or after boundary symbol, merging is not possible
+kre.subn('ㄱ', 'ㄴ', 'ㄱㅗ', boundaries=True, syllabify="extended")
+> ('ㄴㅗ', 1)
+kre.subn('ㅗ', 'ㅏ', 'ㄱㅗ', boundaries=True, syllabify="extended")
+> ('ㄱㅏ', 1)
+kre.subn(';ㅗ', ';ㅏ', 'ㄱㅗ', boundaries=True, syllabify="extended")
+> ('ㄱㅏ', 1)
+
+#  Including (and deleting) boundary symbol enables merging, because letter preceding the boundary is now accessible
+kre.subn(';ㅗ', 'ㅏ', 'ㄱㅗ', boundaries=True, syllabify="extended")
+> ('가', 1)
+kre.subn(';', '', 'ㄱㅗ', boundaries=True, syllabify="extended")
+> ('고', 1)
+```
+In the case of "full" syllabification, boundaries are deleted prior to syllabification, as it would otherwise have no effect.
 
 ### Special Considerations (Differences from `re`)
 This section discusses a few cases where the mapping process is not straightforward, and we must choose among multiple possible solutions. Users should be aware of these cases and how this module addresses them.
