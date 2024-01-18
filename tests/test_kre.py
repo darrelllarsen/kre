@@ -39,6 +39,8 @@ def test_sub():
 
 
 def test_subn():
+    assert kre.subn('a', 'b', 'c') == ('c', 0)
+
     res = kre.subn('느', '나가', nonsense)
     assert res == ('할ㄱ으하나가나갈그나가', 3)
 
@@ -207,7 +209,7 @@ def test_kre_pattern_subn():
     res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='none')
     assert res ==  ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
 
-    # syllabify='miminal': result may differ for patterns that cross
+    # syllabify='minimal': result may differ for patterns that cross
     # syllables
     # same
     res = m.subn('ㅓ', nonsense, syllabify='minimal')
