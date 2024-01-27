@@ -34,17 +34,17 @@ def test_fullmatch():
     pass
 
 def test_sub():
-    res = kre.sub('ㄴ다', 'ㄹ 거예요', arirang)
+    res = kre.sub('ㄴ다', 'ㄹ 거예요', arirang, syllabify="extended")
     assert res == "아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요."
 
 
 def test_subn():
     assert kre.subn('a', 'b', 'c') == ('c', 0)
 
-    res = kre.subn('느', '나가', nonsense)
+    res = kre.subn('느', '나가', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하나가나갈그나가', 3)
 
-    res = kre.subn('ㅏ','ㅗ',nonsense)
+    res = kre.subn('ㅏ','ㅗ',nonsense, syllabify="extended")
     assert res == ('홁으호느늘근ㅡ', 2)
 
     res = kre.subn('ㅡ','ㅓ', nonsense, syllabify='none')
@@ -68,10 +68,10 @@ def test_subn():
     assert res == ('핡어하너널거너', 5)
 
     # Test multiple substitutions affecting same syllable
-    res = kre.subn('ㅇ','ㄱ', '앙')
+    res = kre.subn('ㅇ','ㄱ', '앙', syllabify="extended")
     assert res == ('각', 2) # former error: "강악"
 
-    res = kre.subn('[ㅇ|ㅏ]','ㄱ', '앙')
+    res = kre.subn('[ㅇ|ㅏ]','ㄱ', '앙', syllabify="extended")
     assert res == ('ㄱㄱㄱ', 3)
 
 def test_split():
@@ -173,30 +173,30 @@ def test_kre_pattern_fullmatch_with_pos_and_boundaries():
 
 def test_kre_pattern_sub():
     m = kre.compile('ㄴ다')
-    res = m.sub('ㄹ 거예요', arirang)
+    res = m.sub('ㄹ 거예요', arirang, syllabify="extended")
     assert res == "아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요."
 
 def test_kre_pattern_subn():
     m = kre.compile('느')
-    res = m.subn('나가', nonsense)
+    res = m.subn('나가', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하나가나갈그나가', 3)
 
     m = kre.compile(';느')
-    res = m.subn(';나가', nonsense, boundaries=True)
+    res = m.subn(';나가', nonsense, boundaries=True, syllabify="extended")
     assert res == ('할ㄱ으하나가나갈근ㅡ', 2)
 
     # syllable-final boundary in pattern and sub
     m = kre.compile('[ㄱ|ㄴ];')
-    res = m.subn('ㅁ;',nonsense, boundaries=True)
+    res = m.subn('ㅁ;',nonsense, boundaries=True, syllabify="extended")
     assert res == ('할ㅁ으하느늘금ㅡ', 2)
 
     # syllable-final boundary in pattern but not sub
     m = kre.compile('[ㄱ|ㄴ];')
-    res = m.subn('ㅁ',nonsense, boundaries=True)
+    res = m.subn('ㅁ',nonsense, boundaries=True, syllabify="extended")
     assert res == ('할ㅁ으하느늘그므', 2)
 
     m = kre.compile('ㅏ')
-    res = m.subn('ㅗ',nonsense)
+    res = m.subn('ㅗ',nonsense, syllabify="extended")
     assert res == ('홁으호느늘근ㅡ', 2)
 
     ### Boundaries True/False pairs
