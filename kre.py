@@ -57,6 +57,7 @@ TODO:
 
 import re
 from . import tools
+from .constants import COMBINED_FINALS
 
 
 ### Public interface
@@ -659,15 +660,24 @@ class Mapping:
         lin_idx = 0
 
         for char_ in self.delimited:
+            # Case: Korean syllable character (e.g., '글')
             if tools.isSyllable(char_):
                 
                 # append the linearized string
-                for letter in ''.join(tools.split(char_, split_coda=True)):
+                for letter in ''.join(tools.split(char_, split_codas=True)):
                     lin_str += letter
                     lin2del_.append(lin_idx)
 
                 lin2orig_str.append(char_)
 
+            # Case: complex coda character (e.g., 'ㄺ')
+            elif char_ in COMBINED_FINALS.keys():
+                # append the linearized string
+                for letter in ''.join(tools.split_coda(char_)):
+                    lin_str += letter
+                    lin2del_.append(lin_idx)
+
+                lin2orig_str.append(char_)
 
             else:
                 lin_str += char_
