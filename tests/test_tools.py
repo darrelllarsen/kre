@@ -28,8 +28,8 @@ def test_combine_value_list():
     assert tools._combine_value_list((3,0,0)) == '다'
 
 def test_split_coda():
-    assert tools._split_coda('ㄺ') == 'ㄹㄱ'
-    assert tools._split_coda('닭') == '닭'
+    assert tools.split_coda('ㄺ') == 'ㄹㄱ'
+    assert tools.split_coda('닭') == '닭'
 
 def test_combine_coda():
     assert tools._combine_coda('ㄹㄱ') == 'ㄺ'
@@ -49,8 +49,8 @@ def test_split():
     assert tools.split('닭', fill_finals = False) == ['ㄷ', 'ㅏ', 'ㄺ']
     assert tools.split('다', fill_finals = False) == ['ㄷ', 'ㅏ']
     assert tools.split('다', fill_finals = True) == ['ㄷ', 'ㅏ', '']
-    assert tools.split('닭', split_coda = True) == ['ㄷ', 'ㅏ', 'ㄹㄱ']
-    assert tools.split('닭', fill_finals = True, split_coda = True) == ['ㄷ', 'ㅏ', 'ㄹㄱ']
+    assert tools.split('닭', split_codas = True) == ['ㄷ', 'ㅏ', 'ㄹㄱ']
+    assert tools.split('닭', fill_finals = True, split_codas = True) == ['ㄷ', 'ㅏ', 'ㄹㄱ']
 
 def test_isSyllable():
     assert tools.isSyllable('닭') == True
