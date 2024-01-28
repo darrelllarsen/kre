@@ -255,11 +255,16 @@ class KRE_Pattern:
 
         # Iterate over matches to extract subbed spans from delimited string
 
-        ############NOTE##############
-        #'original' must be changed to 'delimited' below
-        ##############################
-
+        # For each affected syllable, store the number of subs it is
+        # involved in, and the initial and final indices of the affected
+        # characters in both the linear and mapped del spans. 
         subs = dict()
+        # Strutucture: subs = {1: {'num_subs': int, 
+        #                           'del_span': tuple(start, end),
+        #                           'linear_span': tuple(start, end)},
+        #                      2: {...}, 
+        #                      ...}
+
         i = 0 # number non-overlapping sub spans (no increment for shared syllable)
         for n, match_ in enumerate(matches):
             # limit matches to number indicated by count (0=no limit)
@@ -271,22 +276,29 @@ class KRE_Pattern:
             start = ls.lin2del[span[0]]
             end = ls.lin2del[span[1]-1]+1
 
-
-            if i > 0 and subs[i-1]['original_span'][1] > start:
+            # Were there multiple subs from the same syllable?
+            if i > 0 and subs[i-1]['del_span'][1] > start:
+                # increment number of subs for this syllable
                 subs[i-1]['num_subs'] += 1
-                subs[i-1]['original_span'] = (
-                        subs[i-1]['original_span'][0], end)
+
+                # update the end pos of the affected del_span
+                subs[i-1]['del_span'] = (
+                        subs[i-1]['del_span'][0], end)
+
+                # update the end pos of the associated linear_span
                 subs[i-1]['linear_span'] = (
                         subs[i-1]['linear_span'][0], span[1])
             else:
                 subs[i] = dict()
                 sub = subs[i]
                 sub['num_subs'] = 1
-                sub['original_span'] = (start, end)
+                sub['del_span'] = (start, end)
                 sub['linear_span'] = span
                 i += 1
+
         # Keep track of extra letters in the subbed syllables which
         # preceded/followed the actual substitution
+        print(subs)
         for n in range(len(subs)):
             sub = subs[n]
             start = sub['linear_span'][0]
@@ -304,8 +316,8 @@ class KRE_Pattern:
         # avoid this.) 
         safe_text = []
         for n in range(len(subs) + 1):
-            start = 0 if n == 0 else subs[n-1]['original_span'][1]
-            end = len(ls.delimited) if n == len(subs) else subs[n]['original_span'][0]
+            start = 0 if n == 0 else subs[n-1]['del_span'][1]
+            end = len(ls.delimited) if n == len(subs) else subs[n]['del_span'][0]
             safe_text.append(ls.delimited[start:end])
 
         # Carry out substitutions one by one to identify the indices of each 
