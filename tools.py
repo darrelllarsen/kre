@@ -132,7 +132,7 @@ def _combine_value_list(int_seq: Sequence[int,int,int]) -> str:
 
     return _values_to_letter(_get_letters(int_seq))
 
-def _split_coda(final: str) -> str:
+def split_coda(final: str) -> str:
     """
     Splits a complex coda/final into separate letters.
 
@@ -302,7 +302,7 @@ def syllabify(text) -> str:
     return output
 
 def split(char, 
-        fill_finals=False, split_coda=False) -> list[str, str, (str)]:
+        fill_finals=False, split_codas=False) -> list[str, str, (str)]:
     """
     Converts a Korean syllable character into a sequence of letters
 
@@ -320,12 +320,12 @@ def split(char,
         '닭' --> ['ㄷ', 'ㅏ', 'ㄺ']     (fill_finals=True or False)
         '다' --> ['ㄷ', 'ㅏ']           (fill_finals=False)
         '다' --> ['ㄷ', 'ㅏ', '']       (fill_finals=True)
-        '닭' --> ['ㄷ', 'ㅏ', 'ㄹㄱ']   (split_coda=True
+        '닭' --> ['ㄷ', 'ㅏ', 'ㄹㄱ']   (split_codas=True
     """
 
     output = list(_get_letters(_get_split_values(char)))
-    if split_coda:
-        output[-1] = _split_coda(output[-1])
+    if split_codas:
+        output[-1] = split_coda(output[-1])
 
     # Remove empty strings in finals position if fill_finals is False
     if output[-1] == '' and not fill_finals:
@@ -333,12 +333,14 @@ def split(char,
 
     return output
 
-def linearize(text, split_coda=True) -> str:
+def linearize(text, split_codas=True) -> str:
     output = ''
     for char in text:
         if isSyllable(char):
             output += ''.join(split(char, fill_finals=False, 
-                    split_coda=split_coda))
+                    split_codas=split_codas))
+        elif char in COMBINED_FINALS.keys() and split_codas == True:
+            output += ''.join(split_coda(char))
         else:
             output += char
     return output
