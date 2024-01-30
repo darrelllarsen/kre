@@ -44,15 +44,11 @@ delimiter=new_symbol.
 
 
 TODO:
-    Improve documentation.
-
     Implement exceptions; may want to add kre-specific exceptions
 
-    re.finditer returns class 'callable_iterator' rather than
-    'list_iterator'. Unclear whether there is any practical difference;
-    it may simply reflect something in the underlying C-level code
-    not directly accessible via python.
-
+NOTE:
+    re.finditer returns class 'callable_iterator', where kre returns
+    'list_iterator'. Unclear whether there is any practical difference.
 """
 
 import re
@@ -116,46 +112,24 @@ def split(pattern, string, maxsplit=0, flags=0, boundaries=False,
             boundaries=boundaries, delimiter=delimiter)
 
 def findall(pattern, string, flags=0, boundaries=False, delimiter=';'):
-    """
-    kre modification: source string and pattern are linearized prior to 
-    calling re.findall()
-    """
     return compile(pattern, flags).findall(string, 
             boundaries=boundaries,
             delimiter=delimiter)
 
 def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
-    """
-    kre modifications: 
-        source string and pattern are linearized prior to calling 
-        re.finditer()
-
-        returns list_iterator rather than callable iterator (see TODOs)
-    """
     return compile(pattern, flags).finditer(string, 
             boundaries=boundaries,
             delimiter=delimiter)
 
 def compile(pattern, flags=0):
-    """
-    kre modification: source string and pattern are linearized prior to
-    calling re.compile()
-
-    note that this may change in the future; see TODOs
-    """
     return _compile(pattern, flags)
 
 def purge():
-    """
-    kre modification: none; note that this will purge all regular 
-    expression caches, not just those created through kre
-    """
+    # note that this will purge all regular expression caches, 
+    # not just those created through kre
     re.purge()
 
 def escape(pattern):
-    """
-    kre modification: none
-    """
     return re.escape(pattern)
 
 ### Private interface
@@ -175,7 +149,6 @@ class KRE_Pattern:
         # Extract from compiled non-linearized string so access format
         # can match input format
         self._re = re.compile(self.pattern)
-        #self.groupindex = self.Pattern.groupindex
         self.groupindex = self._re.groupindex
 
     def __repr__(self):
@@ -232,9 +205,6 @@ class KRE_Pattern:
     def sub(self, repl, string, count=0, boundaries=False, 
             delimiter=';', syllabify='extended'):
         """
-        kre modification: source string and pattern are linearized prior to 
-        calling re.subn()
-
         Returns unsubstituted characters in the same format as input (i.e.,
         as syllable characters or individual letters) except as affected by 
         the syllabify options.
@@ -389,10 +359,6 @@ class KRE_Pattern:
 
     def subn(self, repl, string, count=0, boundaries=False, 
             delimiter=';', syllabify='extended'):
-        """
-        kre modification: source string and pattern are linearized prior to 
-        calling re.subn()
-        """
         
         # Must limit substitutions to max of count if != 0
         res = self.findall(string,
@@ -410,9 +376,6 @@ class KRE_Pattern:
 
     def split(self, string, maxsplit=0, boundaries=False, 
             delimiter=';'):
-        """
-        kre modification: source string and pattern are linearized prior to 
-        calling re.split()"""
         raise NotImplementedError 
 
     def findall(self, string, *args, boundaries=False, delimiter=';'):
@@ -442,14 +405,6 @@ class KRE_Pattern:
             return None
 
     def finditer(self, string, *args, boundaries=False, delimiter=';'):
-        """
-        kre modifications: 
-            source string and pattern are linearized prior to calling 
-            re.finditer()
-
-            returns list_iterator rather than callable iterator (see TODOs)
-        """
-
         ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -594,7 +549,7 @@ class Mapping:
 
     Developer notes: 
     - new levels and their mappings should be created simultaneously
-    - abbreviation: {delimiter: del; original: orig; linear: lin}
+    - abbreviations: {delimiter: del; original: orig; linear: lin}
         - use abbreviations exclusively within functions
         - use full name as class attribute
     """
