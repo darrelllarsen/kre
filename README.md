@@ -139,7 +139,7 @@ Let's change the verb endings from the narrative forms to a type of future tense
 Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
 Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요.
 ```
-When carrying out substitutions in Korean, there is no guarantee that the result will be a sequence that can form a syllable block. There is also no requirement that the input contain only syllable blocks. When performing substitutions, kre allows the user to decide the extent to which kre should attempt to create syllables from the sequences through the keyword argument `syllabify` (options: 'none', 'minimal', 'extended' (default), 'full'). Except for 'full', any non-captured syllable blocks remain unaffected.
+When carrying out substitutions in Korean, there is no guarantee that the result will be a sequence that can form a syllable block. There is also no requirement that the input contain only syllable blocks. When performing substitutions, kre allows the user to decide the extent to which kre should attempt to create syllables from the sequences through the keyword argument `syllabify` (options: 'none', 'minimal (default)', 'extended', 'full'). Except when using the 'full' option, any non-captured syllable blocks remain unaffected.
 
 *"Affected character"* refers to captured letters/characters and any other letters belonging to the same syllable in the input.
 - 'none': affected characters are ouput without syllabification. Unaffected characters are returned as they appeared in input.
@@ -148,11 +148,8 @@ When carrying out substitutions in Korean, there is no guarantee that the result
 - 'full': linearizes and resyllabifies the entire string, including all non-captured characters
 ```
 > nonsense = '할ㄱ으하느늘근ㅡ'
-> kre.subn('느', '나가', nonsense)
-('할ㄱ으하나가나갈그나가', 3)
-
 > kre.subn('ㅏ','ㅗ',nonsense)
-('홁으호느늘근ㅡ', 2)
+('홀ㄱ으호느늘근ㅡ', 2)
 
 > kre.subn('ㅡ','ㅓ', nonsense, syllabify='none')
 ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
