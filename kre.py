@@ -938,8 +938,8 @@ class KRE_Match:
         self.pattern_mapping = pattern_mapping
 
     def __repr__(self):
-        return "<kre.KRE_Match object; span=%s, match='%s'>" % (
-                self.span(), self.string[self.span()[0]:self.span()[1]])
+        return "<kre.KRE_Match object; span=%r, match=%r>" % (
+                self.span(), self.group(0))
 
     def __getitem__(self, group):
         return self.group(group)
