@@ -401,7 +401,18 @@ class KRE_Pattern:
                         string[source_string_span[0]:source_string_span[1]]
                         )
 
+                # Update start pos for next iteration.
                 pos = sub_match.span()[1]
+
+                # Was the match an empty string?
+                if sub_match.span()[0] == sub_match.span()[1]:
+                    # Increment pos manually
+                    pos += 1
+                    # Ensure syllable-internal empty strings matches
+                    # remain empty, if wanted
+                    if empty_es == True:
+                        match_list[-1] = ''
+
             return match_list
         else:
             return None
@@ -422,6 +433,11 @@ class KRE_Pattern:
                     sub_match, *args, boundaries=boundaries,
                     delimiter=delimiter, empty_es=empty_es))
                 pos = sub_match.span()[1]
+
+                # Was the match an empty string?
+                if sub_match.span()[0] == sub_match.span()[1]:
+                    # Increment pos manually
+                    pos += 1
             return iter(match_list)
         else:
             return None
