@@ -51,11 +51,11 @@ Although text is linearized prior to calling the corresponding `re` function, ca
 > print('Matched spans:\n' + '  |  '.join([' '.join([str(res.span()), arirang[res.span()[0]:res.span()[1]]]) for res in kre.finditer('ㅏㄹ', arirang)]))
 Indexation:
 0:아 | 1:리 | 2:랑 | 3:  | 4:아 | 5:리 | 6:랑 | 7:  | 8:아 | 9:라 |
-  10:리 | 11:요 | 12:. | 13:  | 14:아 | 15:리 | 16:랑 | 17:  | 18:고 |
-  19:개 | 20:로 | 21:  | 22:넘 | 23:어 | 24:간 | 25:다 | 26:. | 27:  | 
-  28:나 | 29:를 | 30:  | 31:버 | 32:리 | 33:고 | 34:  | 35:가 | 36:시 |
-  37:는 | 38:  | 39:님 | 40:은 | 41:  | 42:십 | 43:리  | 44:도 | 45:  | 
-  46:못 | 47:가 | 48:서 | 49:  | 50:발 | 51:병 | 52:  | 53:난 | 54:다 | 55:.
+10:리 | 11:요 | 12:. | 13:  | 14:아 | 15:리 | 16:랑 | 17:  | 18:고 |
+19:개 | 20:로 | 21:  | 22:넘 | 23:어 | 24:간 | 25:다 | 26:. | 27:  | 
+28:나 | 29:를 | 30:  | 31:버 | 32:리 | 33:고 | 34:  | 35:가 | 36:시 |
+37:는 | 38:  | 39:님 | 40:은 | 41:  | 42:십 | 43:리  | 44:도 | 45:  | 
+46:못 | 47:가 | 48:서 | 49:  | 50:발 | 51:병 | 52:  | 53:난 | 54:다 | 55:.
 
 Matched spans:
 (0, 2) 아리  |  (4, 6) 아리  |  (8, 10) 아라  |  (9, 11) 라리  |  (14, 16) 아리  |  (28, 30) 나를  |  (50, 51) 발
@@ -63,40 +63,40 @@ Matched spans:
 KRE_Match implements the same methods and attributes as re's Match, with values adjusted to align with the input string. You can also directly access the underlying Match object provided by re, which took the linearized string as input. (Some methods/attributed remain to the implemented.)
 ```
 > res = kre.search('니.+?ㅁ', arirang)
-> print('KRE_Match object:')
+> # kre.KRE_Match object
 > print(f'Input string: {res.string}')
-> print(f'Matched span: {res.span()}')
-> print('\nre Match object:')
-> print(f'Input string: {res.Match.string}')
-> print(f'Matched span: {res.Match.span()}')
-KRE_Match object:
 Input string: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
+> print(f'Matched span: {res.span()}')
 Matched span: (39, 47)
 
-re Match object:
+># re.Match object
+> print(f'Input string: {res.Match.string}')
 Input string: ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅣㄹㅏㅇ ㅇㅏㄹㅏㄹㅣㅇㅛ. ㅇㅏㄹㅣㄹㅏㅇ ㄱㅗㄱㅐㄹㅗ ㄴㅓㅁㅇㅓㄱㅏㄴㄷㅏ. ㄴㅏㄹㅡㄹ ㅂㅓㄹㅣㄱㅗ ㄱㅏㅅㅣㄴㅡㄴ ㄴㅣㅁㅇㅡㄴ ㅅㅣㅂㄹㅣㄷㅗ ㅁㅗㅅㄱㅏㅅㅓ ㅂㅏㄹㅂㅕㅇ ㄴㅏㄴㄷㅏ.
+> print(f'Matched span: {res.Match.span()}')
 Matched span: (74, 90)
 ```
 Note that Korean letters entered in syllable format in the *search* pattern can match across syllables. In the example below, '신' matches with 시는 (**ㅅㅣㄴ**ㅡㄴ). To avoid this behavior, set `boundaries=True` (see below).
 ```
 > print(kre.findall('신', arirang))
-> print(kre.search('신', arirang).span())
-> print(kre.findall('신', arirang, boundaries=True))
 ['시는']
+> print(kre.search('신', arirang).span())
 (36, 38)
+> print(kre.findall('신', arirang, boundaries=True))
 None
 ```
 Just as ranges can be used for Latin letters (e.g., [a-zA-Z]), ranges can be used for Korean characters: [ㄱ-ㅎ] for all consonant (자음) letters, [ㅏ-ㅣ] for all vowel (모음) letters, and [ㄱ-ㅣ] for all Korean letters.
 ```
-> print(f"All consonants C in sequence ㅏCㅣ: {kre.findall('ㅏ[ㄱ-ㅎ]ㅣ', arirang)}")
-All consonants C in sequence ㅏCㅣ: ['아리', '아리', '라리', '아리', '가시']
+> # All consonants C in sequence ㅏCㅣ
+> kre.findall('ㅏ[ㄱ-ㅎ]ㅣ', arirang)
+['아리', '아리', '라리', '아리', '가시']
 
-> print(f"All vowels between two ㄹ (within/across syllables): {kre.findall('ㄹ[ㅏ-ㅣ]ㄹ', arirang)}")
-All vowels between two ㄹ (within/across syllables): ['리랑', '리랑', '라리', '리랑', '를']
+> # All vowels between two ㄹ (within/across syllables)
+> kre.findall('ㄹ[ㅏ-ㅣ]ㄹ', arirang)
+['리랑', '리랑', '라리', '리랑', '를']
 
-> print(f"All uninterrupted sequences of Korean: {kre.findall('[ㄱ-ㅣ]+', 'not Korean' + arirang + 'not Korean')}")
-All uninterrupted sequences of Korean: ['아리랑', '아리랑', '아라리요', '아리랑', '고개로', '넘어간다', '나를',
-  '버리고', '가시는', '님은', '십리도', '못가서', '발병', '난다']
+> # All uninterrupted sequences of Korean
+> kre.findall('[ㄱ-ㅣ]+', 'not Korean' + arirang + 'not Korean')
+['아리랑', '아리랑', '아라리요', '아리랑', '고개로', '넘어간다', '나를', '버리고', '가시는', '님은', '십리도', '못가서', '발병', '난다']
 ```
 #### `re` Extension: Syllable Boundaries
 Like syllabaries, Korean script encodes information not encoded in alphabetic writing systems: syllable boundaries (to some extent). We lose this information when linearizing the script, and although we could use a somewhat complex regular expression to capture the concept of a syllable boundary in Korean, kre makes it easy to capture syllable boundaries in regular expressions patterns.
@@ -104,38 +104,41 @@ Like syllabaries, Korean script encodes information not encoded in alphabetic wr
 To do this, we include the argument `boundaries=True` (default is False) and then place a delimiter (by default, the semi-colon `;`) in the search pattern where we want to indicate a syllable boundary. There is no need to manually include semi-colons in the input string. When using the `sub` or `subn` functions/methods, delimiters must be manually entered in the replacement *repl* argument, if desired.
 ```
 # Look for all ㄹ at the end of the syllable
-> print(f"Syllable-final ㄹ: {kre.findall('ㄹ;', arirang, boundaries=True)}")
-Syllable-final ㄹ: ['를', '발']
+> kre.findall('ㄹ;', arirang, boundaries=True)
+['를', '발']
 
 # Look for all ㄹ at the beginning of the syllable
-> print(f"Syllable-initial ㄹ: {kre.findall(';ㄹ', arirang, boundaries=True)}")
-Syllable-initial ㄹ: ['리', '랑', '리', '랑', '라', '리', '리', '랑', '로', '를', '리', '리']
+> kre.findall(';ㄹ', arirang, boundaries=True)
+['리', '랑', '리', '랑', '라', '리', '리', '랑', '로', '를', '리', '리']
 
-> print(f"ㄹ.ㄹ sequences (boundaries=False): {kre.findall('ㄹ.ㄹ', arirang)}")
-ㄹ.ㄹ sequences (boundaries=False): ['리랑', '리랑', '라리', '리랑', '를']
+# ㄹ.ㄹ sequences with boundaries=False (default)
+> kre.findall('ㄹ.ㄹ', arirang)
+['리랑', '리랑', '라리', '리랑', '를']
 
-> print(f"ㄹ.ㄹ sequences (boundaries=True): {kre.findall('ㄹ.ㄹ', arirang, boundaries=True)}")
-ㄹ.ㄹ sequences (boundaries=True): ['를']
+# ㄹ.ㄹ sequences with boundaries=True
+> kre.findall('ㄹ.ㄹ', arirang, boundaries=True)
+['를']
 
-> print(f"ㄹ;ㄹ sequences (boundaries=True): {kre.findall('ㄹ;ㄹ', arirang, boundaries=True)}")
-ㄹ;ㄹ sequences (boundaries=True): None
+# Examples with boundaries in pattern
+> kre.findall('ㄹ;ㄹ', arirang, boundaries=True)
+None
 
-> print(f"ㄹ.;ㄹ sequences (boundaries=True): {kre.findall('ㄹ.;ㄹ', arirang, boundaries=True)}")
-ㄹ.;ㄹ sequences (boundaries=True): ['리랑', '리랑', '라리', '리랑']
+> kre.findall('ㄹ.;ㄹ', arirang, boundaries=True)}")
+['리랑', '리랑', '라리', '리랑']
 
-> print(f";ㄹ.ㄹ; sequences (boundaries=True): {kre.findall(';ㄹ.ㄹ;', arirang, boundaries=True)}")
-;ㄹ.ㄹ; sequences (boundaries=True): ['를']
+> kre.findall(';ㄹ.ㄹ;', arirang, boundaries=True)
+['를']
 ```
 The semi-colon was chosen as the default boundary marker because it appears on Korean keyboards (thus is easy to type) yet is not commonly used in Korean writing, and it is not a special character in regular expressions. Nonetheless, the boundary marker can be set to any other character by setting `delimiter` to a different character. (Using special regular expression characters is not recommended.)
 ```
-> print(f"Syllable-final ㄹ: {kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')}")
-Syllable-final ㄹ: ['를', '발']
+# Syllable-final ㄹ, using non-default delimiter
+> kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')
+['를', '발']
 ```
 #### Substitutions
 Let's change the verb endings from the narrative forms to a type of future tense.
 ```
-> print(f"Original: {arirang}")
-> print(f"Revised:  {kre.sub('ㄴ다', 'ㄹ 거예요', arirang)}")
+> print(f"Original: {arirang}\nRevised:  {kre.sub('ㄴ다', 'ㄹ 거예요', arirang)}")
 Original: 아리랑 아리랑 아라리요. 아리랑 고개로 넘어간다. 나를 버리고 가시는 님은 십리도 못가서 발병 난다.
 Revised:  아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요.
 ```
@@ -186,6 +189,16 @@ Note that some consonant sequences are available as single characters, and these
 > kre.subn(r"가", r"다", "가ㄺ", syllabify="extended")
 ('닭', 1)
 ```
+
+At present, captured groups that are referenced in the replacement argument are treated as *affected arguments* as defined above and will thus be subject to syllabification in all cases except when syllabify is set to "None". To avoid this behavior, you can set boundaries to "True" (discussed below).
+
+```
+> kre.sub(r"ㅗ(.*)ㅗ", r"ㅏ\1ㅏ", "ㅎㅗㅎㅗㅎㅗㅎㅗㅎㅗ")
+'ㅎㅏ호호호하'
+> kre.sub(r"ㅗ(.*)ㅗ", r"ㅏ\1ㅏ", "ㅎㅗㅎㅗㅎㅗㅎㅗㅎㅗ", boundaries=True)
+'ㅎㅏㅎㅗㅎㅗㅎㅗㅎㅏ'
+```
+
 ##### Substitutions with Boundaries
 When boundaries==True, delimiters are also subject to substitution (they can be added or deleted). These interact with the various syllabify options and thus produce different results than similar substitutions without the use of boundaries. Specifically, when boundaries==True, "extended" will only result in resyllabification when patterns include boundary symbols that are removed in the *repl* argument.
 ```
