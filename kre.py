@@ -62,23 +62,24 @@ from .constants import COMBINED_FINALS
 
 ### Public interface
 
-def search(pattern, string, flags=0, boundaries=False, delimiter=';'):
+def search(pattern, string, flags=0, boundaries=False, delimiter=';',
+        empty_es=True):
     return compile(pattern, flags).search(string, 
             boundaries=boundaries,
-            delimiter=delimiter)
+            delimiter=delimiter, empty_es=empty_es)
 
-def match(pattern, string, flags=0, boundaries=False, delimiter=';'):
+def match(pattern, string, flags=0, boundaries=False, delimiter=';', empty_es=True):
     return compile(pattern, flags).match(string, 
             boundaries=boundaries,
-            delimiter=delimiter)
+            delimiter=delimiter, empty_es=empty_es)
 
-def fullmatch(pattern, string, flags=0, boundaries=False, delimiter=';'):
+def fullmatch(pattern, string, flags=0, boundaries=False, delimiter=';', empty_es=True):
     return compile(pattern, flags).fullmatch(string, 
             boundaries=boundaries,
-            delimiter=delimiter)
+            delimiter=delimiter, empty_es=empty_es)
 
 def sub(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        delimiter=';', syllabify='minimal'):
+        delimiter=';', empty_es=True, syllabify='minimal'):
     """
     Returns unsubstituted characters in the same format as input (i.e.,
     as syllable characters or individual letters) except as affected by 
@@ -93,33 +94,33 @@ def sub(pattern, repl, string, count=0, flags=0, boundaries=False,
     """
     return compile(pattern, flags).sub(repl, string, count=count,
             boundaries=boundaries, 
-            delimiter=delimiter, 
+            delimiter=delimiter, empty_es=empty_es, 
             syllabify=syllabify)
 
 def subn(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        delimiter=';', syllabify='minimal'):
+        delimiter=';', empty_es=True, syllabify='minimal'):
     """
     Similar to sub(), but returns tuple with count as second element.
     """
     return compile(pattern, flags).subn(repl, string, count=count, 
             boundaries=boundaries,
-            delimiter=delimiter, 
+            delimiter=delimiter, empty_es=empty_es, 
             syllabify=syllabify)
 
 def split(pattern, string, maxsplit=0, flags=0, boundaries=False, 
-        delimiter=';'):
+        delimiter=';', empty_es=True):
     return compile(pattern, flags).split(string, maxsplit=maxsplit, 
-            boundaries=boundaries, delimiter=delimiter)
+            boundaries=boundaries, delimiter=delimiter, empty_es=empty_es,)
 
-def findall(pattern, string, flags=0, boundaries=False, delimiter=';'):
+def findall(pattern, string, flags=0, boundaries=False, delimiter=';', empty_es=True):
     return compile(pattern, flags).findall(string, 
             boundaries=boundaries,
-            delimiter=delimiter)
+            delimiter=delimiter, empty_es=empty_es,)
 
-def finditer(pattern, string, flags=0, boundaries=False, delimiter=';'):
+def finditer(pattern, string, flags=0, boundaries=False, delimiter=';', empty_es=True):
     return compile(pattern, flags).finditer(string, 
             boundaries=boundaries,
-            delimiter=delimiter)
+            delimiter=delimiter, empty_es=empty_es,)
 
 def compile(pattern, flags=0):
     return _compile(pattern, flags)
@@ -157,7 +158,7 @@ class KRE_Pattern:
     def __str__(self):
         return "kre.compile(%s)" % repr(self.pattern)
 
-    def search(self, string, *args, boundaries=False, delimiter=';'):
+    def search(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
         ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -167,12 +168,12 @@ class KRE_Pattern:
             return _make_match_object(self.pattern, string, match_,
                     *args,
                     boundaries=boundaries,
-                    delimiter=delimiter,
+                    delimiter=delimiter, empty_es=empty_es,
                     )
         else:
             return match_
 
-    def match(self, string, *args, boundaries=False, delimiter=';'):
+    def match(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
         ls, pos_args, iter_span = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
        
@@ -182,12 +183,12 @@ class KRE_Pattern:
                 return _make_match_object(self.pattern, string, match_,
                         *args,
                         boundaries=boundaries,
-                        delimiter=delimiter,
+                        delimiter=delimiter, empty_es=empty_es,
                         )
         else:
             return match_
 
-    def fullmatch(self, string, *args, boundaries=False, delimiter=';'):
+    def fullmatch(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
         ls, pos_args, iter_span = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -197,13 +198,13 @@ class KRE_Pattern:
                 return _make_match_object(self.pattern, string, match_,
                         *args,
                         boundaries=boundaries,
-                        delimiter=delimiter,
+                        delimiter=delimiter, empty_es=empty_es,
                         )
         else:
             return match_
 
     def sub(self, repl, string, count=0, boundaries=False, 
-            delimiter=';', syllabify='minimal'):
+            delimiter=';', empty_es=True, syllabify='minimal'):
         """
         Returns unsubstituted characters in the same format as input (i.e.,
         as syllable characters or individual letters) except as affected by 
@@ -357,11 +358,12 @@ class KRE_Pattern:
         return output
 
     def subn(self, repl, string, count=0, boundaries=False, 
-            delimiter=';', syllabify='minimal'):
+            delimiter=';', empty_es=True, syllabify='minimal'):
         
         # Must limit substitutions to max of count if != 0
         res = self.findall(string,
-            boundaries=boundaries, delimiter=delimiter)
+            boundaries=boundaries, delimiter=delimiter,
+            empty_es=empty_es)
         if res:
             sub_count = len(res)
         else:
@@ -370,14 +372,15 @@ class KRE_Pattern:
             sub_count = count
 
         return (self.sub(repl, string, count=count, 
-            boundaries=boundaries, delimiter=delimiter, 
-            syllabify=syllabify), sub_count)
+            boundaries=boundaries, delimiter=delimiter,
+            empty_es=empty_es, syllabify=syllabify), 
+            sub_count)
 
     def split(self, string, maxsplit=0, boundaries=False, 
-            delimiter=';'):
+            delimiter=';', empty_es=True):
         raise NotImplementedError 
 
-    def findall(self, string, *args, boundaries=False, delimiter=';'):
+    def findall(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
         ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -403,7 +406,7 @@ class KRE_Pattern:
         else:
             return None
 
-    def finditer(self, string, *args, boundaries=False, delimiter=';'):
+    def finditer(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
         ls, pos_args, _ = self._process(string, *args,
                 boundaries=boundaries, delimiter=delimiter)
 
@@ -417,7 +420,7 @@ class KRE_Pattern:
                 sub_match = self.search(ls.linear, pos)
                 match_list.append(_make_match_object(self.pattern, string, 
                     sub_match, *args, boundaries=boundaries,
-                    delimiter=delimiter))
+                    delimiter=delimiter, empty_es=empty_es))
                 pos = sub_match.span()[1]
             return iter(match_list)
         else:
@@ -780,7 +783,7 @@ class Mapping:
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
 def _make_match_object(pattern, string, Match, *args, boundaries=False, 
-        delimiter=';'):
+        delimiter=';', empty_es=True):
     # TODO: need to pass in flags as well
     """
     Instantiates a KRE_Match object
@@ -811,6 +814,7 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
             Match = Match,
             string_mapping = ls,
             pattern_mapping = lp,
+            empty_es = empty_es,
             )
     return match_obj 
 
@@ -874,11 +878,12 @@ class KRE_Match:
     """
     def __init__(self, endpos = None, pos = 0, re = None, regs = None,
             string = None, linear = None, Match=None,
-            string_mapping=None, pattern_mapping=None):
+            string_mapping=None, pattern_mapping=None, empty_es=True):
        
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
         self.Match = Match 
+        self.empty_es = empty_es
 
         self.string = string
         self.pos = pos #int
@@ -942,7 +947,7 @@ class KRE_Match:
             if self.regs[idx] == (-1, -1):
                 res.append(None)
             # empty string match? (see discussion on special treatment)
-            elif self.Match.group(idx) == '':
+            elif self.empty_es == True and self.Match.group(idx) == '':
                 res.append('')
             else:
                 res.append(self.string[slice(*self.regs[idx])])
