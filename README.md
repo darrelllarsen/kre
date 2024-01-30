@@ -221,89 +221,49 @@ In the case of "full" syllabification, boundaries are deleted prior to syllabifi
 ### Special Considerations (Differences from `re`)
 This section discusses a few cases where the mapping process is not straightforward, and we must choose among multiple possible solutions. Users should be aware of these cases and how this module addresses them.
 
-#### `regs` and empty string matches
-
-The Match.regs attribute is undocumented in the official docs. Here 
-is an explanation of its use, followed by discussion of a problem kre
-runs regarding regs (and groups) into when empty string matches occur.
-
-regs is a tuple of tuples of indices, where the first tuple contains
-the span of the complete match, and each subsequent tuple represents 
-the spans of the subgroups of the pattern. When the Match.span method
-is called with an integer argument n, it returns regs[n]. When called
-without an argument, Match.span returns regs[0]. Note that Match.span 
-also accepts string arguments for named groups, thus it is not merely 
-a redundant function for accessing the subelements of regs.
-
-Some matches can consist of an empty string, such as the following
-patterns and resulting Match object attributes:
-```
-re.search(r".*?", "한글"): regs -> ((0,0),) | groups -> ()
-re.search(r"..*?", "한글"): regs -> ((0,1),) | groups -> ()
-re.search(r"한.*?", "한글"): regs -> ((0,1),) | groups -> ()
-re.search(r"글.*?", "한글"): regs -> ((1,2),) | groups -> ()
-re.search(r"(p?).*?", "한글"): regs -> ((0,1, (0,0)) | groups -> ('',)
-re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
-```
-Note that while empty string matches return an empty string in groups, 
-optional groups that don't participate in a match return None and are 
-assigned the indices (-1,-1).
-```
-re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-re.search(r".(p)?", "한글"): regs -> ((0,1), (-1,-1)) | groups -> (None,)
-```
-
-The problem:
-In the original implementation, re.Match.group(n) method presumably 
-returns the substring corresponding to the pair of indices stored at 
-re.Match.regs[n]. More specifically, for match m and integer n:                        
-`m.group(n) == m.string[slice(*m.regs[n])]`
-
-This isn't as simple for kre, because empty string matches can occur
-*between* mapped indices, not just *at* indices. Thus, the following
-is expected. (Note: 한글 (length 2) linearizes to ㅎㅏㄴㄱㅡㄹ (length 6))
+#### Empty string matches
+`re` allows for empty string matches. In such cases, the matched string is `''`, and the start and end indices of the spaces are equal. In the example below, the *p* in the capture group `(p?)` is optional, and as no *p* is present between the two *a*s, the capture group matches an empty string. Notice that the start and end positions of the empty string span are equal.
 
 ```
-# RE:
-re.search(r".(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-re.search(r"..(p?)", "한글"): regs -> ((0,2), (2,2)) | groups -> ('',)
-# KRE: NOT ACTUAL IMPLEMENTATION!
-# kre.search(r"(p?)", "한글"): regs -> ((0,0), (0,0)) | groups -> ('',)
-kre.search(r".(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',) # -> ('',) in actual implementation
-kre.search(r"..(p?)", "한글"): regs -> ((0,1), (0,1)) | groups -> ('한',) # -> ('',) in actual implementation
-
-kre.search(r"...(p?)", "한글"): regs -> ((0,1), (1,1)) | groups -> ('',)
-kre.search(r"....(p?)", "한글"): regs -> ((0,2), (1,2)) | groups -> ('글',) # -> ('',) in actual implementation
+> m = re.search(r"a(p?)a", "aa")
+> m
+<re.Match object; span=(0, 2), match='aa'>
+> m.groups()
+('',)
+> m.span(1) # span of the first capture group
+(1, 1)
 
 ```
 
-On the one hand, the span is correct in each case (empty string
-matches between syllables should have same start and end indices,
-while the end indices for matches within syllables should be 1 greater
-than the start indices). On the other hand, the groups method returns
-a non-empty string for syllable-internal empty-string matches. This
-latter fact may be desired (after all, kre is designed to return
-full syllable matches for sub-syllabic matches), but for many cases
-users will likely want to treat empty string matches different from
-other matches (e.g., ignoring empty string matches). There are at least
-two possible workarounds:
+In `kre`, if an empty span occurs between syllables, they behave as above; however, if an empty span is matched syllable-internally, the start and end positions of the span will not map to the same indices. Just as with syllable-internally letters (e.g., ㅏ in 한=ㅎㅏㄴ), the indices of syllable-internal empty strings reflect the start and end indices of the syllable in which they occur.
 
-1. Whenever a tuple in re.Match.regs contains identical start and end
-indices, we can force them to map onto a single index. We then run into 
-the question of whether to use the start or end index; for example,
-the following search has two possible solutions:
-ex. `kre.search(r"(ㅎ)(p?).(ㄴ)", "한글")`: 
-option 1: regs -> ((0,1), (0,1), (0,0), (0,1))
-option 2: regs -> ((0,1), (0,1), (1,1), (0,1))
+```
+> m = kre.search(r"(p?)가", "아가")
+> m
+<kre.KRE_Match object; span=(1, 2), match='가'>
+> m.span(1)
+(1, 1)
+> m = kre.search(r"ㄱ(p?)ㅏ", "아가")
+> m
+<kre.KRE_Match object; span=(1, 2), match='가'>
+> m.span(1)
+(1, 2)
+```
 
-2. Leave the indices as is, but add a condition to the groups
-method to return an empty string for any group in the linearized
-string that returned an empty string.
+Note that users should be aware of this behavior if intending to use the span method (or related start and end methods) to manually extract portions of a text. For methods that return strings of matches or matches groups, use the `empty_es` boolean argument to indicate whether empty strings should be returned as empty strings or as the syllable character where the match occurred (if the match was not between syllables). By default, `empty_es` is True, so empty string matches return empty-string strings.
+```
+> kre.findall(r"p?", "한국어") # empty_es=True by default
+['', '', '', '', '', '', '', '', '']
+> kre.findall(r"p?", "한국어", empty_es=False)
+['', '한', '한', '', '국', '국', '', '어', '']
 
-The present implementation adopts method (2). 
+> kre.search(r"한ㄱ(a?)", "한국어").group(1)
+''
+> kre.search(r"한ㄱ(a?)", "한국어", empty_es=False).group(1)
+'국'
+```
 
-#### `pos` \ `endpos`
+#### `pos` and `endpos`
 
 The `pos` and `endpos` are optional (non-keyword) arguments for several methods of compiles (i.e., Pattern) objects. They allow users to restrict the regular expression search to a subset of an input string delimited by the specified start (`pos`) and end (`endpos`) indices.
 
