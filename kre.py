@@ -78,7 +78,7 @@ def fullmatch(pattern, string, flags=0, boundaries=False, delimiter=';'):
             delimiter=delimiter)
 
 def sub(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        delimiter=';', syllabify='extended'):
+        delimiter=';', syllabify='minimal'):
     """
     Returns unsubstituted characters in the same format as input (i.e.,
     as syllable characters or individual letters) except as affected by 
@@ -97,7 +97,7 @@ def sub(pattern, repl, string, count=0, flags=0, boundaries=False,
             syllabify=syllabify)
 
 def subn(pattern, repl, string, count=0, flags=0, boundaries=False, 
-        delimiter=';', syllabify='extended'):
+        delimiter=';', syllabify='minimal'):
     """
     Similar to sub(), but returns tuple with count as second element.
     """
@@ -203,7 +203,7 @@ class KRE_Pattern:
             return match_
 
     def sub(self, repl, string, count=0, boundaries=False, 
-            delimiter=';', syllabify='extended'):
+            delimiter=';', syllabify='minimal'):
         """
         Returns unsubstituted characters in the same format as input (i.e.,
         as syllable characters or individual letters) except as affected by 
@@ -358,7 +358,7 @@ class KRE_Pattern:
         return output
 
     def subn(self, repl, string, count=0, boundaries=False, 
-            delimiter=';', syllabify='extended'):
+            delimiter=';', syllabify='minimal'):
         
         # Must limit substitutions to max of count if != 0
         res = self.findall(string,
