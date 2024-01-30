@@ -272,7 +272,6 @@ class KRE_Pattern:
 
         # Keep track of extra letters in the subbed syllables which
         # preceded/followed the actual substitution
-        print(subs)
         for n in range(len(subs)):
             sub = subs[n]
             start = sub['linear_span'][0]
