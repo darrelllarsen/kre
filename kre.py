@@ -56,6 +56,10 @@ TODO:
 """
 
 import re
+
+# Make flags from re library accessible 
+from re import (A, ASCII, DEBUG, DOTALL, I, IGNORECASE, L, LOCALE, M,
+        MULTILINE, T, TEMPLATE, U, UNICODE, VERBOSE, X)
 from . import tools
 from .constants import COMBINED_FINALS
 
