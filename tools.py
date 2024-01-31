@@ -205,13 +205,19 @@ def combine(*args: str or Sequence[str]) -> str:
     else:
         raise Exception("Insufficient characters")
         
-def syllabify(text) -> str:
+def syllabify(text, linearize_first=True) -> str:
     """
     Combines a string of Korean letters into syllables.
 
     Args:
         text (str): a string which presumably contains at least some
             Korean letters
+        linearize_first (bool): if True, any Korean syllables or complex 
+            coda characters in the input will be linearized first, then
+            syllabified 
+
+            ex. True: 가ㄹ -> ㄱㅏㄹ -> 갈
+            ex. False: 가ㄹ -> 가ㄹ -> 가ㄹ
 
     Returns:
         str: a string of in which any linear sequences of possible 
@@ -220,6 +226,9 @@ def syllabify(text) -> str:
 
     buffer = ''
     output = ''
+
+    if linearize_first == True:
+        text = linearize(text, split_codas=True)
 
     for char in text:
         if not isLetter(char, include_complex=True):
