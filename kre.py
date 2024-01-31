@@ -273,14 +273,15 @@ class KRE_Pattern:
 
         # Keep track of extra letters in the subbed syllables which
         # preceded/followed the actual substitution
-        for n in range(len(subs)):
-            sub = subs[n]
-            start = sub['linear_span'][0]
-            end = sub['linear_span'][1]
-            extra_start = start - ls.get_syl_start(start)
-            extra_end = ls.get_syl_end(end-1) - end
-            pre_sub_letters = ls.linear[start - extra_start:start]
-            post_sub_letters = ls.linear[end:end + extra_end]
+        for sub in subs.values():
+            sub_start, sub_end = sub['linear_span']
+
+            syl_start = ls.get_syl_start(sub_start)
+            syl_end = ls.get_syl_end(sub_end-1)
+
+            pre_sub_letters = ls.linear[syl_start:sub_start]
+            post_sub_letters = ls.linear[sub_end:syl_end]
+
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
 
         # Extract the text from the unchanged indices so we can return them
