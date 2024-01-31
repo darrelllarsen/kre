@@ -283,7 +283,6 @@ class KRE_Pattern:
             post_sub_letters = ls.linear[sub_end:syl_end]
 
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
-            print(f"extra_letters: {sub['extra_letters']}")
 
         # Extract the text from the unchanged indices so we can return them
         # without change. (If we use tools.syllabify to reconstruct the entire
@@ -295,7 +294,6 @@ class KRE_Pattern:
             start = 0 if n == 0 else subs[n-1]['del_span'][1]
             end = len(ls.delimited) if n == len(subs) else subs[n]['del_span'][0]
             safe_text.append(ls.delimited[start:end])
-            print(f"safe_text: {safe_text[-1]}")
 
         # Carry out substitutions one by one* to identify the indices of each 
         # changed section. *Multiple subs affecting same syllable are
@@ -320,7 +318,6 @@ class KRE_Pattern:
             syl_text += subbed_string[sub_start:sub_end]
             syl_text += sub['extra_letters'][1]
             sub['subbed_syl'] = syl_text
-            print(f"subbed_syl: {sub['subbed_syl']}")
 
             prev_string = subbed_string
 
