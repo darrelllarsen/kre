@@ -283,6 +283,7 @@ class KRE_Pattern:
             post_sub_letters = ls.linear[sub_end:syl_end]
 
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
+            print(f"extra_letters: {sub['extra_letters']}")
 
         # Extract the text from the unchanged indices so we can return them
         # without change. (If we use tools.syllabify to reconstruct the entire
@@ -294,27 +295,32 @@ class KRE_Pattern:
             start = 0 if n == 0 else subs[n-1]['del_span'][1]
             end = len(ls.delimited) if n == len(subs) else subs[n]['del_span'][0]
             safe_text.append(ls.delimited[start:end])
+            print(f"safe_text: {safe_text[-1]}")
 
-        # Carry out substitutions one by one to identify the indices of each 
-        # changed section. 
-        extra = 0
+        # Carry out substitutions one by one* to identify the indices of each 
+        # changed section. *Multiple subs affecting same syllable are
+        # carried out at same time.
+        extra = 0 # Tracks added/substracted number of letters after sub
         prev_string = ls.linear
-        num_subs = 0
-        for n in range(len(subs)):
-            sub = subs[n]
+        num_subs = 0 # For carrying out subs incrementally
+        for sub in subs.values():
+            # Carry out next substitution(s)
             num_subs = num_subs + sub['num_subs']
             subbed_string = self.Pattern.sub(repl, ls.linear,
                     count=num_subs)
+
             # Calculate the start and end indices of the inserted substitution
             sub_start = sub['linear_span'][0] + extra
             extra += len(subbed_string) - len(prev_string)
             sub_end = sub['linear_span'][1] + extra
 
-            # Combine the substitution with the extra letters
+            # Combine the substitution(s) with the extra letters from
+            # affected syllables
             syl_text = sub['extra_letters'][0]
             syl_text += subbed_string[sub_start:sub_end]
             syl_text += sub['extra_letters'][1]
-            subs[n]['subbed_syl'] = syl_text
+            sub['subbed_syl'] = syl_text
+            print(f"subbed_syl: {sub['subbed_syl']}")
 
             prev_string = subbed_string
 
