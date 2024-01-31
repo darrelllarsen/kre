@@ -1,5 +1,5 @@
 import pytest
-import kre.tools as tools
+import kre.tools._tools as tools
 
 ### Test hidden functions
 def test_get_split_values():

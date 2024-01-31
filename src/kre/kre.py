@@ -56,8 +56,8 @@ import re
 # Make flags from re library accessible 
 from re import (A, ASCII, DEBUG, DOTALL, I, IGNORECASE, L, LOCALE, M,
         MULTILINE, T, TEMPLATE, U, UNICODE, VERBOSE, X)
-from . import tools
-from .constants import COMBINED_FINALS
+from .tools import _tools
+from .tools._constants import _COMBINED_FINALS
 
 
 ### Public interface
@@ -285,8 +285,8 @@ class KRE_Pattern:
                 syl_start = len(ls.linear)
             # Normal case
             else:
-                syl_start = ls.get_syl_start(sub_start)
-            syl_end = ls.get_syl_end(sub_end-1)
+                syl_start = ls._get_syl_start(sub_start)
+            syl_end = ls._get_syl_end(sub_end-1)
 
             pre_sub_letters = ls.linear[syl_start:sub_start]
             post_sub_letters = ls.linear[sub_end:syl_end]
@@ -338,22 +338,22 @@ class KRE_Pattern:
             if n < len(subs):
                 new_text = subs[n]['subbed_syl']
                 if syllabify == 'minimal': 
-                    output += tools.syllabify(new_text)
+                    output += _tools.syllabify(new_text)
                 elif syllabify == 'extended':
                     new_text = Mapping(new_text).linear
                     if safe_text[n+1]:
                         post = safe_text[n+1][0]
                         safe_text[n+1] = safe_text[n+1][1:]
-                        if tools.isSyllable(post):
-                            post = ''.join(tools.split(post))
+                        if _tools.isSyllable(post):
+                            post = ''.join(_tools.split(post))
                         new_text += post
                     if output:
                         pre = output[-1]
                         output = output[:-1]
-                        if tools.isSyllable(pre):
-                            pre = ''.join(tools.split(pre))
+                        if _tools.isSyllable(pre):
+                            pre = ''.join(_tools.split(pre))
                         new_text = pre + new_text
-                    output += tools.syllabify(new_text)
+                    output += _tools.syllabify(new_text)
                 else:
                     output += new_text
 
@@ -363,7 +363,7 @@ class KRE_Pattern:
             output = output.replace(delimiter, '')
 
         if syllabify == 'full':
-            output = tools.syllabify(Mapping(output).linear)
+            output = _tools.syllabify(Mapping(output).linear)
 
         if syllabify == 'none':
             pass
@@ -618,7 +618,7 @@ class Mapping:
         just_saw_delimiter = False
 
         for char_ in self.original:
-            if tools.isHangul(char_):
+            if _tools.isHangul(char_):
                 
                 # add delimiter in front of Korean syllable
                 if self.boundaries==True and not just_saw_delimiter:
@@ -663,19 +663,19 @@ class Mapping:
 
         for char_ in self.delimited:
             # Case: Korean syllable character (e.g., '글')
-            if tools.isSyllable(char_):
+            if _tools.isSyllable(char_):
                 
                 # append the linearized string
-                for letter in ''.join(tools.split(char_, split_codas=True)):
+                for letter in ''.join(_tools.split(char_, split_codas=True)):
                     lin_str += letter
                     lin2del_.append(lin_idx)
 
                 lin2orig_str.append(char_)
 
             # Case: complex coda character (e.g., 'ㄺ')
-            elif char_ in COMBINED_FINALS.keys():
+            elif char_ in _COMBINED_FINALS.keys():
                 # append the linearized string
-                for letter in ''.join(tools.split_coda(char_)):
+                for letter in ''.join(_tools.split_coda(char_)):
                     lin_str += letter
                     lin2del_.append(lin_idx)
 
@@ -780,14 +780,14 @@ class Mapping:
 
         return tuple(span_map)
 
-    def get_syl_span(self, idx):
+    def _get_syl_span(self, idx):
         return self.del2lin_span[self.lin2del[idx]]
 
-    def get_syl_start(self, idx):
-        return self.get_syl_span(idx)[0]
+    def _get_syl_start(self, idx):
+        return self._get_syl_span(idx)[0]
 
-    def get_syl_end(self, idx):
-        return self.get_syl_span(idx)[1]
+    def _get_syl_end(self, idx):
+        return self._get_syl_span(idx)[1]
 
     def show_original_alignment(self):
         print('Index\tOriginal\torig2del_span\tdel2orig\tdel2orig_span\tDelimited\tdel2lin_span\tLinear')
