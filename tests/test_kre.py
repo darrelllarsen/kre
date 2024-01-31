@@ -74,6 +74,10 @@ def test_subn():
     res = kre.subn('[ㅇ|ㅏ]','ㄱ', '앙', syllabify="extended")
     assert res == ('ㄱㄱㄱ', 3)
 
+def test_empty_strings():
+    res = kre.sub('a?', 'b', nonsense)
+    assert res == ('bㅎbㅏbㄹbㄱbㅇbㅡbㅎbㅏbㄴbㅡbㄴbㅡbㄹbㄱbㅡbㄴbㅡb')
+
 def test_split():
     pass
 
