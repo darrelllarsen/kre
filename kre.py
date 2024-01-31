@@ -239,7 +239,7 @@ class KRE_Pattern:
         #                           'linear_span': tuple(start, end)},
         #                      2: {...}, 
         #                      ...}
-
+        
         i = 0 # number non-overlapping sub spans (no increment for shared syllable)
         for n, match_ in enumerate(matches):
             # limit matches to number indicated by count (0=no limit)
@@ -247,8 +247,12 @@ class KRE_Pattern:
                 break
             span = match_.span()
 
-
-            start = ls.lin2del[span[0]]
+            # Case of empty string match at end of string
+            if span[0] == len(ls.linear):
+                start = len(ls.linear)
+            # Normal case
+            else:
+                start = ls.lin2del[span[0]]
             end = ls.lin2del[span[1]-1]+1
 
             # Were there multiple subs from the same syllable?
@@ -276,7 +280,12 @@ class KRE_Pattern:
         for sub in subs.values():
             sub_start, sub_end = sub['linear_span']
 
-            syl_start = ls.get_syl_start(sub_start)
+            # Case: string-final empty string match
+            if sub_start == len(ls.linear):
+                syl_start = len(ls.linear)
+            # Normal case
+            else:
+                syl_start = ls.get_syl_start(sub_start)
             syl_end = ls.get_syl_end(sub_end-1)
 
             pre_sub_letters = ls.linear[syl_start:sub_start]
