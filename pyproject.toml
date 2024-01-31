@@ -8,6 +8,7 @@ readme = "README.md"
 packages = [{ include = "kre", from = "src" }]
 include = [{ path = "tests", format = "sdist" }]
 repository = "https://github.com/darrelllarsen/kre"
+documentation = "https://github.com/darrelllarsen/kre/wiki"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
