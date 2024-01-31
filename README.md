@@ -37,7 +37,7 @@ Although linearizing a Korean string normally results in the loss of information
 <kre.KRE_Match object; span=(1, 2), match='일'>
 ```
 
-As a more interesting, complicated, and perhaps useless example of what kre can do, the following swaps every sequential pair of final consonant(s) (받침) in the first line of the fable "The Sun and Moon". 
+As a more interesting, complicated, and perhaps useless example of what kre can do, the following swaps every sequential pair of final consonant(s) (받침) in the input string. 
 ```
 > sun_and_moon = "옛날 옛적 깊은 산 속에 가난하지만 사이좋은 오누이와 그 홀어머니 가족이 살고 있었다."
 > kre.sub(r"([ㅏ-ㅣ])([ㄱ-ㅎ]{1,2};)(.*?)([ㅏ-ㅣ])([ㄱ-ㅎ]{1,2};)", r"\1\5\3\4\2", sun_and_moon, boundaries=True)
