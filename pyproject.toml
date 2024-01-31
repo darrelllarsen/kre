@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "kre"
+version = "0.9.8"
+description = "Subcharacter-level regular expression functionality for Korean"
+authors = ["Darrell Larsen <pythonkre@gmail.com>"]
+license = "GPL-3.0-only"
+readme = "README.md"
+packages = [{ include = "kre", from = "src" }]
+include = [{ path = "tests", format = "sdist" }]
+repository = "https://github.com/darrelllarsen/kre"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Natural Language :: Korean",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Utilities",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
