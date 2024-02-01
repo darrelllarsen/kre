@@ -165,11 +165,8 @@ class KRE_Pattern:
         match_ = self.Pattern.search(ls.linear, *pos_args)
 
         if match_:
-            return _make_match_object(self.pattern, string, match_,
-                    *args,
-                    boundaries=boundaries,
-                    delimiter=delimiter, empty_es=empty_es,
-                    )
+            return _make_match_object(self.pattern, ls, match_,
+                    *args, empty_es=empty_es)
         else:
             return match_
 
@@ -180,11 +177,8 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.match(ls.linear, *span)
             if match_:
-                return _make_match_object(self.pattern, string, match_,
-                        *args,
-                        boundaries=boundaries,
-                        delimiter=delimiter, empty_es=empty_es,
-                        )
+                return _make_match_object(self.pattern, ls, match_,
+                        *args, empty_es=empty_es)
         else:
             return match_
 
@@ -195,11 +189,8 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.fullmatch(ls.linear, *span)
             if match_:
-                return _make_match_object(self.pattern, string, match_,
-                        *args,
-                        boundaries=boundaries,
-                        delimiter=delimiter, empty_es=empty_es,
-                        )
+                return _make_match_object(self.pattern, ls, match_,
+                        *args, empty_es=empty_es)
         else:
             return match_
 
@@ -442,9 +433,8 @@ class KRE_Pattern:
             match_list = []
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
-                match_list.append(_make_match_object(self.pattern, string, 
-                    sub_match, *args, boundaries=boundaries,
-                    delimiter=delimiter, empty_es=empty_es))
+                match_list.append(_make_match_object(self.pattern, ls, 
+                    sub_match, *args, empty_es=empty_es))
                 pos = sub_match.span()[1]
 
                 # Was the match an empty string?
@@ -811,8 +801,7 @@ class Mapping:
                     '\t', self.delimited[slice(*self.lin2del_span[n])],
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
-def _make_match_object(pattern, string, Match, *args, boundaries=False, 
-        delimiter=';', empty_es=True):
+def _make_match_object(pattern, string_mapping, Match, *args, empty_es=True):
     # TODO: need to pass in flags as well
     """
     Instantiates a KRE_Match object
@@ -826,16 +815,16 @@ def _make_match_object(pattern, string, Match, *args, boundaries=False,
         KRE_Match object
     """
     # Extract pos, endpos args, if provided
-    pos_args = [0, len(string)] # re defaults
+    pos_args = [0, len(string_mapping.original)] # re defaults
     if args:
         for n, arg in enumerate(args):
             pos_args[n] = arg
 
-    ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
+    ls = string_mapping#Mapping(string, boundaries=boundaries, delimiter=delimiter)
     lp = Mapping(pattern)
     match_obj = KRE_Match(
             re = compile(pattern),
-            string = string,
+            string = ls.original,#string,
             linear = ls.linear,
             pos = pos_args[0],
             endpos = pos_args[1],
