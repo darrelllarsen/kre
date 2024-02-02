@@ -165,7 +165,7 @@ class KRE_Pattern:
         match_ = self.Pattern.search(ls.linear, *pos_args)
 
         if match_:
-            return _make_match_object(self.pattern, ls, match_,
+            return _make_match_object(self, ls, match_,
                     *args, empty_es=empty_es)
         else:
             return match_
@@ -177,7 +177,7 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.match(ls.linear, *span)
             if match_:
-                return _make_match_object(self.pattern, ls, match_,
+                return _make_match_object(self, ls, match_,
                         *args, empty_es=empty_es)
         else:
             return match_
@@ -189,7 +189,7 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.fullmatch(ls.linear, *span)
             if match_:
-                return _make_match_object(self.pattern, ls, match_,
+                return _make_match_object(self, ls, match_,
                         *args, empty_es=empty_es)
         else:
             return match_
@@ -444,7 +444,7 @@ class KRE_Pattern:
             match_list = []
             for item in match_:
                 sub_match = self.search(ls.linear, pos)
-                match_list.append(_make_match_object(self.pattern, ls, 
+                match_list.append(_make_match_object(self, ls, 
                     sub_match, *args, empty_es=empty_es))
                 pos = sub_match.span()[1]
 
@@ -600,7 +600,6 @@ class Mapping:
         self.lin2del_span = self._get_lin2del_span()
         self.orig2del_span = self._get_orig2del_span()
         self.orig2lin_span = self._get_orig2lin_span()
-        print(self.original)
 
     def validate_delimiter(self) -> None:
         """
@@ -813,7 +812,7 @@ class Mapping:
                     '\t', self.delimited[slice(*self.lin2del_span[n])],
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
-def _make_match_object(pattern, string_mapping, Match, *args, empty_es=True):
+def _make_match_object(pattern_obj, string_mapping, Match, *args, empty_es=True):
     # TODO: need to pass in flags as well
     """
     Instantiates a KRE_Match object
@@ -831,11 +830,10 @@ def _make_match_object(pattern, string_mapping, Match, *args, empty_es=True):
     if args:
         for n, arg in enumerate(args):
             pos_args[n] = arg
-
-    ls = string_mapping#Mapping(string, boundaries=boundaries, delimiter=delimiter)
-    lp = Mapping(pattern)
+    ls = string_mapping
+    lp = pattern_obj
     match_obj = KRE_Match(
-            re = compile(pattern),
+            re = lp,
             string = ls.original,#string,
             linear = ls.linear,
             pos = pos_args[0],
@@ -843,7 +841,6 @@ def _make_match_object(pattern, string_mapping, Match, *args, empty_es=True):
             regs = _get_regs(Match, ls),
             Match = Match,
             string_mapping = ls,
-            pattern_mapping = lp,
             empty_es = empty_es,
             )
     return match_obj 
@@ -908,7 +905,7 @@ class KRE_Match:
     """
     def __init__(self, endpos = None, pos = 0, re = None, regs = None,
             string = None, linear = None, Match=None,
-            string_mapping=None, pattern_mapping=None, empty_es=True):
+            string_mapping=None, empty_es=True):
        
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
@@ -928,7 +925,6 @@ class KRE_Match:
         #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
         self.linear = linear
         self.string_mapping = string_mapping
-        self.pattern_mapping = pattern_mapping
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%r, match=%r>" % (
