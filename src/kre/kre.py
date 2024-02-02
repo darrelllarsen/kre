@@ -408,13 +408,10 @@ class KRE_Pattern:
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
         if match_:
-            # Need to create new Mapping on linearized string for
-            # finding spans
-            ls2 = Mapping(ls.linear, boundaries=False)
             pos = pos_args[0]
             match_list = []
             for item in match_:
-                sub_match = self._search(ls2, pos)
+                sub_match = self.Pattern.search(ls.linear, pos)
 
                 source_string_span = _get_regs(sub_match, ls)[0]
                 match_list.append(
@@ -445,12 +442,10 @@ class KRE_Pattern:
 
         # For all re.Match objects in match_
         if match_:
-            ls2 = Mapping(ls.linear, boundaries=False)
             pos = pos_args[0]
             match_list = []
             for item in match_:
-                #sub_match = self.search(ls.linear, pos)
-                sub_match = self._search(ls2, pos)
+                sub_match = self._search(ls, pos)
                 match_list.append(_make_match_object(self, ls, 
                     sub_match, *args, empty_es=empty_es))
                 pos = sub_match.span()[1]
