@@ -159,9 +159,13 @@ class KRE_Pattern:
         return "kre.compile(%s)" % repr(self.pattern)
 
     def search(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
-        ls, pos_args, _ = self._process(string, *args,
-                boundaries=boundaries, delimiter=delimiter)
+        ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
 
+        return self._search(ls, *args, empty_es=empty_es)
+
+    def _search(self, string_mapping, *args, empty_es=True):
+        ls = string_mapping
+        pos_args, iter_span = self._process_pos_args(ls, *args)
         match_ = self.Pattern.search(ls.linear, *pos_args)
 
         if match_:
@@ -404,12 +408,13 @@ class KRE_Pattern:
         # For all patterns found, find their position in the original text
         # and return the syllable(s) they are part of
         if match_:
+            # Need to create new Mapping on linearized string for
+            # finding spans
+            ls2 = Mapping(ls.linear, boundaries=False)
             pos = pos_args[0]
             match_list = []
             for item in match_:
-                # Because we've already linearized the string, we don't
-                # pass in boundaries or delimiter here.
-                sub_match = self.search(ls.linear, pos)
+                sub_match = self._search(ls2, pos)
 
                 source_string_span = _get_regs(sub_match, ls)[0]
                 match_list.append(
@@ -440,10 +445,12 @@ class KRE_Pattern:
 
         # For all re.Match objects in match_
         if match_:
+            ls2 = Mapping(ls.linear, boundaries=False)
             pos = pos_args[0]
             match_list = []
             for item in match_:
-                sub_match = self.search(ls.linear, pos)
+                #sub_match = self.search(ls.linear, pos)
+                sub_match = self._search(ls2, pos)
                 match_list.append(_make_match_object(self, ls, 
                     sub_match, *args, empty_es=empty_es))
                 pos = sub_match.span()[1]
