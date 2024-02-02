@@ -211,10 +211,16 @@ class KRE_Pattern:
                     boundaries prior to syllabifying string)
         """
         # Linearize string
-        ls = Mapping(string, 
-                boundaries=boundaries,
-                delimiter=delimiter,
-                    )
+        ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
+
+        return self._sub(repl, ls, count=count, empty_es=empty_es,
+                syllabify=syllabify)
+
+    def _sub(self, repl, string_mapping, count=0, empty_es=True, 
+            syllabify='minimal'):
+        ls = string_mapping
+        boundaries = string_mapping.boundaries
+        delimiter = string_mapping.delimiter
         
         # Find the spans where substitutions will occur.
         matches = self.finditer(ls.linear)
@@ -363,11 +369,13 @@ class KRE_Pattern:
 
     def subn(self, repl, string, count=0, boundaries=False, 
             delimiter=';', empty_es=True, syllabify='minimal'):
+        ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
         
         # Must limit substitutions to max of count if != 0
-        res = self.findall(string,
-            boundaries=boundaries, delimiter=delimiter,
-            empty_es=empty_es)
+        res = self._findall(ls, empty_es=empty_es)
+        #res = self.findall(string,
+        #    boundaries=boundaries, delimiter=delimiter,
+        #    empty_es=empty_es)
         if res:
             sub_count = len(res)
         else:
@@ -375,18 +383,21 @@ class KRE_Pattern:
         if 0 < count < sub_count:
             sub_count = count
 
-        return (self.sub(repl, string, count=count, 
-            boundaries=boundaries, delimiter=delimiter,
-            empty_es=empty_es, syllabify=syllabify), 
-            sub_count)
+        return (self._sub(repl, ls, count=count, empty_es=empty_es, 
+            syllabify=syllabify), sub_count)
 
     def split(self, string, maxsplit=0, boundaries=False, 
             delimiter=';', empty_es=True):
         raise NotImplementedError 
 
     def findall(self, string, *args, boundaries=False, delimiter=';', empty_es=True):
-        ls, pos_args, _ = self._process(string, *args,
-                boundaries=boundaries, delimiter=delimiter)
+        ls = Mapping(string, boundaries=boundaries, delimiter=delimiter)
+        return self._findall(ls, *args, empty_es=empty_es)
+
+    def _findall(self, string_mapping, *args, empty_es=True):
+        ls = string_mapping
+        string = ls.original
+        pos_args, _ = self._process_pos_args(ls, *args)
 
         match_ = self.Pattern.findall(ls.linear, *pos_args)
 
@@ -402,7 +413,7 @@ class KRE_Pattern:
 
                 source_string_span = _get_regs(sub_match, ls)[0]
                 match_list.append(
-                        string[source_string_span[0]:source_string_span[1]]
+                        string[slice(*source_string_span)]
                         )
 
                 # Update start pos for next iteration.
@@ -589,6 +600,7 @@ class Mapping:
         self.lin2del_span = self._get_lin2del_span()
         self.orig2del_span = self._get_orig2del_span()
         self.orig2lin_span = self._get_orig2lin_span()
+        print(self.original)
 
     def validate_delimiter(self) -> None:
         """
