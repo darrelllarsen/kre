@@ -169,8 +169,7 @@ class KRE_Pattern:
         match_ = self.Pattern.search(ls.linear, *pos_args)
 
         if match_:
-            return _make_match_object(self, ls, match_,
-                    *args, empty_es=empty_es)
+            return KRE_Match(self, ls, match_, *args, empty_es=empty_es)
         else:
             return match_
 
@@ -181,8 +180,8 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.match(ls.linear, *span)
             if match_:
-                return _make_match_object(self, ls, match_,
-                        *args, empty_es=empty_es)
+                return KRE_Match(self, ls, match_, *args, 
+                        empty_es=empty_es)
         else:
             return match_
 
@@ -193,8 +192,8 @@ class KRE_Pattern:
         for span in iter_span:
             match_ = self.Pattern.fullmatch(ls.linear, *span)
             if match_:
-                return _make_match_object(self, ls, match_,
-                        *args, empty_es=empty_es)
+                return KRE_Match(self, ls, match_, *args, 
+                        empty_es=empty_es)
         else:
             return match_
 
@@ -446,7 +445,7 @@ class KRE_Pattern:
             match_list = []
             for item in match_:
                 sub_match = self._search(ls, pos)
-                match_list.append(_make_match_object(self, ls, 
+                match_list.append(KRE_Match(self, ls, 
                     sub_match, *args, empty_es=empty_es))
                 pos = sub_match.span()[1]
 
@@ -814,39 +813,6 @@ class Mapping:
                     '\t', self.delimited[slice(*self.lin2del_span[n])],
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
-def _make_match_object(pattern_obj, string_mapping, Match, *args, empty_es=True):
-    # TODO: need to pass in flags as well
-    """
-    Instantiates a KRE_Match object
-
-    Args:
-        pattern: original (unlinearized) pattern
-        string: original (unlinearized) string
-        Match: re.Match object
-
-    Returns:
-        KRE_Match object
-    """
-    # Extract pos, endpos args, if provided
-    pos_args = [0, len(string_mapping.original)] # re defaults
-    if args:
-        for n, arg in enumerate(args):
-            pos_args[n] = arg
-    ls = string_mapping
-    lp = pattern_obj
-    match_obj = KRE_Match(
-            re = lp,
-            string = ls.original,#string,
-            linear = ls.linear,
-            pos = pos_args[0],
-            endpos = pos_args[1],
-            regs = _get_regs(Match, ls),
-            Match = Match,
-            string_mapping = ls,
-            empty_es = empty_es,
-            )
-    return match_obj 
-
 
 def _get_regs(Match, linear_obj):
     # TODO: update doc
@@ -905,28 +871,24 @@ class KRE_Match:
     A few additional methods are defined to allow the user to obtain data on
     both the original and modified strings created by kre.
     """
-    def __init__(self, endpos = None, pos = 0, re = None, regs = None,
-            string = None, linear = None, Match=None,
-            string_mapping=None, empty_es=True):
-       
+    def __init__(self, pattern_obj, string_mapping, Match_obj, *args, 
+            empty_es=True):
+
+        self.string_mapping = string_mapping
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
-        self.Match = Match 
+        self.Match = Match_obj
         self.empty_es = empty_es
 
-        self.string = string
-        self.pos = pos #int
-        # re, _re are based on non-linearized pattern
-        self.re = re # KRE_Pattern object (kre.compile)
-        self._re = self.re.Pattern #SRE_Pattern (re.compile)
-        self.regs = regs #tuple
-        self.endpos =  endpos # int
-        self.lastindex = Match.lastindex
+        self.string = self.string_mapping.original
+        self.re = pattern_obj # kre.KRE_Pattern object (kre.compile)
+        self._re = self.re.Pattern # re.Pattern object (re.compile)
+        self.pos, self.endpos = self._get_pos_args(*args)
+        self.regs = _get_regs(Match_obj, self.string_mapping) #tuple
+        self.lastindex = Match_obj.lastindex
         self.lastgroup = self._get_lastgroup()
    
-        #Supplemental in KRE; SHOULD WE ALSO DOUBLE ENDPOS, ETC?
-        self.linear = linear
-        self.string_mapping = string_mapping
+        self.linear = string_mapping.linear
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%r, match=%r>" % (
@@ -935,6 +897,12 @@ class KRE_Match:
     def __getitem__(self, group):
         return self.group(group)
 
+    def _get_pos_args(self, *args):
+        pos_args = [0, len(self.string)] # re defaults
+        if args:
+            for n, arg in enumerate(args):
+                pos_args[n] = arg
+        return pos_args
 
     def expand() -> str:
         """
