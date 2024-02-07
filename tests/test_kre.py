@@ -151,28 +151,28 @@ def test_kre_pattern_match_with_pos():
 def test_kre_pattern_match_with_pos_and_boundaries():
     # Test if pos expands to include preceding boundary
     # No boundaries in pattern
-    p = kre.compile(r"ㄱ")
-    p.match("한글", 0, boundaries=True) == None
-    p.match("한글", 1, boundaries=True).span() == (1,2)
+    p = kre.compile(r"ㄱ", boundaries=True)
+    p.match("한글", 0) == None
+    p.match("한글", 1).span() == (1,2)
     
     # Preceding boundary in pattern
-    p = kre.compile(r";ㄱ")
-    p.match("한글", 1, boundaries=True).span() == (1,2)
+    p = kre.compile(r";ㄱ", boundaries=True)
+    p.match("한글", 1).span() == (1,2)
     
     # Following boundary in pattern
-    p = kre.compile(r"ㄱ;")
-    p.match("한글", 1, boundaries=True) == None
-    p = kre.compile(r"ㄹ;")
-    p.match("한글", 1, boundaries=True).span() == (1,2)
+    p = kre.compile(r"ㄱ;", boundaries=True)
+    p.match("한글", 1) == None
+    p = kre.compile(r"ㄹ;", boundaries=True)
+    p.match("한글", 1).span() == (1,2)
 
 def test_kre_pattern_fullmatch():
     pass
 
 def test_kre_pattern_fullmatch_with_pos_and_boundaries():
-    p = kre.compile(r"ㅡㄹ")
-    p.match("한글", 1, boundaries=True) == None
-    p = kre.compile(r"ㅡㄹ;")
-    p.match("한글", 1, boundaries=True).span == (1,2)
+    p = kre.compile(r"ㅡㄹ", boundaries=True)
+    p.match("한글", 1) == None
+    p = kre.compile(r"ㅡㄹ;", boundaries=True)
+    p.match("한글", 1).span == (1,2)
 
 
 def test_kre_pattern_sub():
@@ -185,18 +185,18 @@ def test_kre_pattern_subn():
     res = m.subn('나가', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하나가나갈그나가', 3)
 
-    m = kre.compile(';느')
-    res = m.subn(';나가', nonsense, boundaries=True, syllabify="extended")
+    m = kre.compile(';느', boundaries=True)
+    res = m.subn(';나가', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하나가나갈근ㅡ', 2)
 
     # syllable-final boundary in pattern and sub
-    m = kre.compile('[ㄱ|ㄴ];')
-    res = m.subn('ㅁ;',nonsense, boundaries=True, syllabify="extended")
+    m = kre.compile('[ㄱ|ㄴ];', boundaries=True)
+    res = m.subn('ㅁ;',nonsense, syllabify="extended")
     assert res == ('할ㅁ으하느늘금ㅡ', 2)
 
     # syllable-final boundary in pattern but not sub
-    m = kre.compile('[ㄱ|ㄴ];')
-    res = m.subn('ㅁ',nonsense, boundaries=True, syllabify="extended")
+    m = kre.compile('[ㄱ|ㄴ];', boundaries=True)
+    res = m.subn('ㅁ',nonsense, syllabify="extended")
     assert res == ('할ㅁ으하느늘그므', 2)
 
     m = kre.compile('ㅏ')
@@ -205,12 +205,11 @@ def test_kre_pattern_subn():
 
     ### Boundaries True/False pairs
     m = kre.compile(r'ㅡ')
-    m2 = kre.compile(r'ㅡㄴ')
     res = m.subn('ㅓ', nonsense, syllabify='none')
     assert res ==  ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
 
-    m = kre.compile('ㅡ')
-    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='none')
+    m = kre.compile('ㅡ', boundaries=True)
+    res = m.subn('ㅓ', nonsense, syllabify='none')
     assert res ==  ('할ㄱㅇㅓ하ㄴㅓㄴㅓㄹㄱㅓㄴㅓ', 5)
 
     # syllabify='minimal': result may differ for patterns that cross
@@ -219,62 +218,72 @@ def test_kre_pattern_subn():
     res = m.subn('ㅓ', nonsense, syllabify='minimal')
     assert res == ('할ㄱ어하너널건ㅓ', 5)
 
-    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='minimal')
+    res = m.subn('ㅓ', nonsense, syllabify='minimal')
     assert res == ('할ㄱ어하너널건ㅓ', 5)
 
     # different
+    m2 = kre.compile(r'ㅡㄴ')
     res = m2.subn(r'ㅓㄴ', nonsense, syllabify="minimal")
     assert res == ('할ㄱ으하너늘건ㅡ', 2)
 
-    res = m2.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="minimal")
+    m2 = kre.compile(r'ㅡㄴ', boundaries=True)
+    res = m2.subn(r'ㅓㄴ', nonsense, syllabify="minimal")
     assert res == ('할ㄱ으하느늘건ㅡ', 1)
 
     # syllabify='extended': result may differ for patterns that cross
     # syllables
     # same
+    m = kre.compile(r'ㅡ')
     res = m.subn('ㅓ', nonsense, syllabify='extended')
     assert res == ('할ㄱ어하너널거너', 5)
 
-    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='extended')
+    m = kre.compile(r'ㅡ', boundaries=True)
+    res = m.subn('ㅓ', nonsense, syllabify='extended')
     assert res == ('할ㄱ어하너널건ㅓ', 5)
 
     # different
+    m2 = kre.compile(r'ㅡㄴ')
     res = m2.subn(r'ㅓㄴ', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하너늘거느', 2)
 
-    res = m2.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="extended")
+    m2 = kre.compile(r'ㅡㄴ', boundaries=True)
+    res = m2.subn(r'ㅓㄴ', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하느늘건ㅡ', 1)
 
     # syllabify='full'
     # same
+    m = kre.compile(r'ㅡ')
     res = m.subn('ㅓ', nonsense, syllabify='full')
     assert res == ('핡어하너널거너', 5)
 
-    res = m.subn('ㅓ', nonsense, boundaries=True, syllabify='full')
+    m = kre.compile(r'ㅡ', boundaries=True)
+    res = m.subn('ㅓ', nonsense, syllabify='full')
     assert res == ('핡어하너널거너', 5)
 
     # different
+    m2 = kre.compile(r'ㅡㄴ')
     res = m2.subn('ㅓㄴ', nonsense, syllabify='full')
     assert res == ('핡으하너늘거느', 2)
 
-    res = m2.subn('ㅓㄴ', nonsense, boundaries=True, syllabify='full')
+    m2 = kre.compile(r'ㅡㄴ', boundaries=True)
+    res = m2.subn('ㅓㄴ', nonsense, syllabify='full')
     assert res == ('핡으하느늘거느', 1)
 
     # With boundaries=True, 'minimal' and 'extended' differ only when
     # boundary from pattern is removed from repl argumenta
-    m3 = kre.compile(r'ㅡㄴ;')
-    m4 = kre.compile(r';ㅡ')
+    m3 = kre.compile(r'ㅡㄴ;', boundaries=True)
+    m4 = kre.compile(r';ㅡ', boundaries=True)
     
-    res = m3.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="minimal")
+    res = m3.subn(r'ㅓㄴ', nonsense, syllabify="minimal")
     assert res == ('할ㄱ으하느늘건ㅡ', 1)
 
-    res = m3.subn(r'ㅓㄴ', nonsense, boundaries=True, syllabify="extended")
+    res = m3.subn(r'ㅓㄴ', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하느늘거느', 1)
 
-    res = m4.subn(r'ㅓ', nonsense, boundaries=True, syllabify="minimal")
+    res = m4.subn(r'ㅓ', nonsense, syllabify="minimal")
     assert res == ('할ㄱ으하느늘근ㅓ', 1)
 
-    res = m4.subn(r'ㅓ', nonsense, boundaries=True, syllabify="extended")
+    res = m4.subn(r'ㅓ', nonsense, syllabify="extended")
     assert res == ('할ㄱ으하느늘그너', 1)
 
 def test_kre_pattern_split():
@@ -285,36 +294,36 @@ def test_kre_pattern_findall():
     results = m.findall(arirang)
     assert results == ['아리', '아리', '아라', '라리', '아리', '나를', '발']
 
-    m = kre.compile('ㄹ;')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile('ㄹ;', boundaries=True)
+    res = m.findall(arirang)
     assert res == ['를', '발']
 
-    m = kre.compile(';ㄹ')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile(';ㄹ', boundaries=True)
+    res = m.findall(arirang)
     assert res == ['리', '랑', '리', '랑', '라', '리', '리', '랑', '로', '를', '리', '리']
 
     m = kre.compile('ㄹ.ㄹ')
     res = m.findall(arirang)
     assert res == ['리랑', '리랑', '라리', '리랑', '를']
 
-    m = kre.compile('ㄹ.ㄹ')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile('ㄹ.ㄹ', boundaries=True)
+    res = m.findall(arirang)
     assert res == ['를']
 
-    m = kre.compile('ㄹ;ㄹ')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile('ㄹ;ㄹ', boundaries=True)
+    res = m.findall(arirang)
     assert res == None
 
-    m = kre.compile('ㄹ.;ㄹ')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile('ㄹ.;ㄹ', boundaries=True)
+    res = m.findall(arirang)
     assert res == ['리랑', '리랑', '라리', '리랑']
 
-    m = kre.compile(';ㄹ.ㄹ;')
-    res = m.findall(arirang, boundaries=True)
+    m = kre.compile(';ㄹ.ㄹ;', boundaries=True)
+    res = m.findall(arirang)
     assert res == ['를']
 
-    m = kre.compile('ㄹ%')
-    res = m.findall(arirang, boundaries=True, delimiter='%')
+    m = kre.compile('ㄹ%', boundaries=True, delimiter='%')
+    res = m.findall(arirang)
     assert res == ['를', '발']
 
 def test_kre_pattern_finditer():
@@ -472,8 +481,9 @@ def test_kre_match_object4():
     # group with 0 matches
     # kre searches for subsyllables should have same results as re
     # searches for syllables containing said subsyllables
-    p = kre.compile('(?P<첫째>ㄱ;.ㅡ)(?P<h>h)?.*(?P<둘째>그)')
-    m = p.search(nonsense, boundaries=True)
+    p = kre.compile('(?P<첫째>ㄱ;.ㅡ)(?P<h>h)?.*(?P<둘째>그)',
+            boundaries=True)
+    m = p.search(nonsense)
     re_p = re.compile('(?P<첫째>ㄱ으)(?P<h>h)?.*(?P<둘째>근)')
     re_m = re_p.search(nonsense)
 
