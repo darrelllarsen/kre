@@ -117,7 +117,7 @@ def finditer(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
             empty_es=empty_es,)
 
 def compile(pattern, flags=0, **pattern_kwargs):
-    return _compile(pattern, flags, **pattern_kwargs)
+    return KRE_Pattern(pattern, flags, **pattern_kwargs)
 
 def purge():
     # note that this will purge all regular expression caches, 
@@ -128,9 +128,6 @@ def escape(pattern):
     return re.escape(pattern)
 
 ### Private interface
-
-def _compile(pattern, flags, **pattern_kwargs):
-    return KRE_Pattern(pattern, flags, **pattern_kwargs)
 
 class KRE_Pattern:
     def __init__(self, pattern, flags, **pattern_kwargs):
