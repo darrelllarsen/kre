@@ -155,41 +155,38 @@ class KRE_Pattern:
         return "kre.compile(%s)" % repr(self.pattern)
 
     def search(self, string, *args, empty_es=True):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-
-        return self._search(ls, *args, empty_es=empty_es)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        return self._search(sm, *args, empty_es=empty_es)
 
     def _search(self, string_mapping, *args, empty_es=True):
-        ls = string_mapping
-        pos_args, iter_span = self._process_pos_args(ls, *args)
-        print(pos_args)
-        match_ = self.Pattern.search(ls.linear, *pos_args)
-        print(f"Match_: {match_}")
+        sm = string_mapping
+        pos_args, iter_span = self._process_pos_args(sm, *args)
+        match_ = self.Pattern.search(sm.linear, *pos_args)
         if match_:
-            return KRE_Match(self, ls, match_, *args, empty_es=empty_es)
+            return KRE_Match(self, sm, match_, *args, empty_es=empty_es)
         else:
             return match_
 
     def match(self, string, *args, empty_es=True):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        pos_args, iter_span = self._process_pos_args(ls, *args)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        pos_args, iter_span = self._process_pos_args(sm, *args)
        
         for span in iter_span:
-            match_ = self.Pattern.match(ls.linear, *span)
+            match_ = self.Pattern.match(sm.linear, *span)
             if match_:
-                return KRE_Match(self, ls, match_, *args, 
+                return KRE_Match(self, sm, match_, *args, 
                         empty_es=empty_es)
         else:
             return match_
 
     def fullmatch(self, string, *args, empty_es=True):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        pos_args, iter_span = self._process_pos_args(ls, *args)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        pos_args, iter_span = self._process_pos_args(sm, *args)
 
         for span in iter_span:
-            match_ = self.Pattern.fullmatch(ls.linear, *span)
+            match_ = self.Pattern.fullmatch(sm.linear, *span)
             if match_:
-                return KRE_Match(self, ls, match_, *args, 
+                return KRE_Match(self, sm, match_, *args, 
                         empty_es=empty_es)
         else:
             return match_
@@ -211,22 +208,22 @@ class KRE_Pattern:
                     boundaries prior to syllabifying string)
         """
         # Linearize string
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
 
-        return self._sub(repl, ls, count=count, empty_es=empty_es,
+        return self._sub(repl, sm, count=count, empty_es=empty_es,
                 syllabify=syllabify)
 
     def _sub(self, repl, string_mapping, count=0, empty_es=True, 
             syllabify='minimal'):
-        ls = string_mapping
+        sm = string_mapping
         boundaries = string_mapping.boundaries
         delimiter = string_mapping.delimiter
         
         # Find the spans where substitutions will occur based on
         # linearized string. Boundaries, if any, were already added.
-        #ls2 = Mapping(ls.linear, boundaries=False) 
-        #matches = self._finditer(ls2)
-        matches = self._finditer(ls)
+        #sm2 = Mapping(sm.linear, boundaries=False) 
+        #matches = self._finditer(sm2)
+        matches = self._finditer(sm)
 
         # Iterate over matches to extract subbed spans from delimited string
 
@@ -251,7 +248,7 @@ class KRE_Pattern:
             orig_span = match_.span()
             lin_span = match_.Match.span()
             # Case of empty string match at end of string
-            if lin_span[0] == len(ls.linear):
+            if lin_span[0] == len(sm.linear):
                 del_span = tuple([map_.lin2del[lin_span[0]-1]+1]*2)
             # Normal case
             else:
@@ -288,12 +285,12 @@ class KRE_Pattern:
             """
 
             # Case of empty string match at end of string
-            #if span[0] == len(ls.linear):
-            #    start = len(ls.linear)
+            #if span[0] == len(sm.linear):
+            #    start = len(sm.linear)
             # Normal case
             #else:
-            #    start = ls.lin2del[span[0]]
-            #end = ls.lin2del[span[1]-1]+1
+            #    start = sm.lin2del[span[0]]
+            #end = sm.lin2del[span[1]-1]+1
 
             # Were there multiple subs from the same syllable?
             if i > 0 and subs[i-1]['del_span'][1] > del_span[0]:
@@ -321,15 +318,15 @@ class KRE_Pattern:
             sub_start, sub_end = sub['linear_span']
 
             # Case: string-final empty string match
-            if sub_start == len(ls.linear):
-                syl_start = len(ls.linear)
+            if sub_start == len(sm.linear):
+                syl_start = len(sm.linear)
             # Normal case
             else:
-                syl_start = ls._get_syl_start(sub_start)
-            syl_end = ls._get_syl_end(sub_end-1)
+                syl_start = sm._get_syl_start(sub_start)
+            syl_end = sm._get_syl_end(sub_end-1)
 
-            pre_sub_letters = ls.linear[syl_start:sub_start]
-            post_sub_letters = ls.linear[sub_end:syl_end]
+            pre_sub_letters = sm.linear[syl_start:sub_start]
+            post_sub_letters = sm.linear[sub_end:syl_end]
 
             sub['extra_letters'] = (pre_sub_letters,post_sub_letters)
 
@@ -341,19 +338,19 @@ class KRE_Pattern:
         safe_text = []
         for n in range(len(subs) + 1):
             start = 0 if n == 0 else subs[n-1]['del_span'][1]
-            end = len(ls.delimited) if n == len(subs) else subs[n]['del_span'][0]
-            safe_text.append(ls.delimited[start:end])
+            end = len(sm.delimited) if n == len(subs) else subs[n]['del_span'][0]
+            safe_text.append(sm.delimited[start:end])
 
         # Carry out substitutions one by one* to identify the indices of each 
         # changed section. *Multiple subs affecting same syllable are
         # carried out at same time.
         extra = 0 # Tracks added/substracted number of letters after sub
-        prev_string = ls.linear
+        prev_string = sm.linear
         num_subs = 0 # For carrying out subs incrementally
         for sub in subs.values():
             # Carry out next substitution(s)
             num_subs = num_subs + sub['num_subs']
-            subbed_string = self.Pattern.sub(repl, ls.linear,
+            subbed_string = self.Pattern.sub(repl, sm.linear,
                     count=num_subs)
 
             # Calculate the start and end indices of the inserted substitution
@@ -411,10 +408,10 @@ class KRE_Pattern:
         return output
 
     def subn(self, repl, string, count=0, empty_es=True, syllabify='minimal'):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
         
         # Must limit substitutions to max of count if != 0
-        res = self._findall(ls, empty_es=empty_es)
+        res = self._findall(sm, empty_es=empty_es)
         #res = self.findall(string,
         #    boundaries=boundaries, delimiter=delimiter,
         #    empty_es=empty_es)
@@ -425,36 +422,74 @@ class KRE_Pattern:
         if 0 < count < sub_count:
             sub_count = count
 
-        return (self._sub(repl, ls, count=count, empty_es=empty_es, 
+        return (self._sub(repl, sm, count=count, empty_es=empty_es, 
             syllabify=syllabify), sub_count)
 
     def split(self, string, maxsplit=0, empty_es=True):
         raise NotImplementedError 
 
     def findall(self, string, *args, empty_es=True):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        return self._findall(ls, *args, empty_es=empty_es)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        return self._findall(sm, *args, empty_es=empty_es)
 
     def _findall(self, string_mapping, *args, empty_es=True):
         matches = self._finditer(string_mapping, *args,
                 empty_es=empty_es)
+
         return [match_.group() for match_ in matches] or None
 
+        """
+        sm = string_mapping
+        string = sm.original
+        pos_args, _ = self._process_pos_args(sm, *args)
+
+        match_ = self.Pattern.findall(sm.linear, *pos_args)
+
+        # For all patterns found, find their position in the original text
+        # and return the syllable(s) they are part of
+        if match_:
+            pos = pos_args[0]
+            match_list = []
+            for item in match_:
+                sub_match = self.Pattern.search(sm.linear, pos)
+
+                source_string_span = _get_regs(sub_match, sm)[0]
+                match_list.append(
+                        string[slice(*source_string_span)]
+                        )
+
+                # Update start pos for next iteration.
+                pos = sub_match.span()[1]
+
+                # Was the match an empty string?
+                if sub_match.span()[0] == sub_match.span()[1]:
+                    # Increment pos manually
+                    pos += 1
+                    # Ensure syllable-internal empty strings matches
+                    # remain empty, if wanted
+                    if empty_es == True:
+                        match_list[-1] = ''
+
+            return match_list
+        else:
+            return None
+        """
+
     def finditer(self, string, *args, empty_es=True):
-        ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        return self._finditer(ls, *args, empty_es=empty_es)
+        sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
+        return self._finditer(sm, *args, empty_es=empty_es)
 
     def _finditer(self, string_mapping, *args, empty_es=True):
-        ls = string_mapping
-        pos_args, _ = self._process_pos_args(ls, *args)
+        sm = string_mapping
+        pos_args, _ = self._process_pos_args(sm, *args)
 
-        match_ = self.Pattern.finditer(ls.linear, *pos_args)
+        match_ = self.Pattern.finditer(sm.linear, *pos_args)
 
         # For all re.Match objects in match_
         match_list = []
         for item in match_:
             cur_match = item
-            match_list.append(KRE_Match(self, ls, 
+            match_list.append(KRE_Match(self, sm, 
                 cur_match, *args, empty_es=empty_es))
         return iter(match_list)
 
