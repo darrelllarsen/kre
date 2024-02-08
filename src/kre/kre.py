@@ -65,6 +65,7 @@ _settings = {"boundaries": False,
         "empty_es": True,
         }
 
+
 ### Public interface
 
 def search(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
@@ -161,8 +162,9 @@ class KRE_Pattern:
     def _search(self, string_mapping, *args, empty_es=True):
         ls = string_mapping
         pos_args, iter_span = self._process_pos_args(ls, *args)
+        print(pos_args)
         match_ = self.Pattern.search(ls.linear, *pos_args)
-
+        print(f"Match_: {match_}")
         if match_:
             return KRE_Match(self, ls, match_, *args, empty_es=empty_es)
         else:
@@ -222,9 +224,9 @@ class KRE_Pattern:
         
         # Find the spans where substitutions will occur based on
         # linearized string. Boundaries, if any, were already added.
-        ls2 = Mapping(ls.linear, boundaries=False) 
-        matches = self._finditer(ls2)
-
+        #ls2 = Mapping(ls.linear, boundaries=False) 
+        #matches = self._finditer(ls2)
+        matches = self._finditer(ls)
 
         # Iterate over matches to extract subbed spans from delimited string
 
@@ -245,32 +247,72 @@ class KRE_Pattern:
                 break
             span = match_.span()
 
+            map_ = match_.string_mapping
+            orig_span = match_.span()
+            lin_span = match_.Match.span()
             # Case of empty string match at end of string
-            if span[0] == len(ls.linear):
-                start = len(ls.linear)
+            if lin_span[0] == len(ls.linear):
+                del_span = tuple([map_.lin2del[lin_span[0]-1]+1]*2)
             # Normal case
             else:
-                start = ls.lin2del[span[0]]
-            end = ls.lin2del[span[1]-1]+1
+                del_span = (map_.lin2del[lin_span[0]],
+                    map_.lin2del[lin_span[1]-1]+1)
+
+            orig_string = match_.string
+            lin_string = match_.Match.string
+            del_string = match_.string_mapping.delimited
+    
+            """
+            # FOR DEBUGGING
+            print_dict = [
+                    {"level": "orig", 
+                        "span": orig_span,
+                        "match": orig_string[slice(*orig_span)],
+                        "string": orig_string,
+                        },
+                    {"level": "del",
+                        "span": del_span, 
+                        "match": del_string[slice(*del_span)],
+                        "string": del_string,
+                        },
+                    {"level": "linear", 
+                        "span": lin_span, 
+                        "match": lin_string[slice(*lin_span)],
+                        "string": lin_string,
+                        },
+                    ]
+            print('\t'.join(key for key in print_dict[0].keys()))
+            for item in print_dict:
+                print('\t'.join(str(val) for val in item.values()))
+            print('-'*30)
+            """
+
+            # Case of empty string match at end of string
+            #if span[0] == len(ls.linear):
+            #    start = len(ls.linear)
+            # Normal case
+            #else:
+            #    start = ls.lin2del[span[0]]
+            #end = ls.lin2del[span[1]-1]+1
 
             # Were there multiple subs from the same syllable?
-            if i > 0 and subs[i-1]['del_span'][1] > start:
+            if i > 0 and subs[i-1]['del_span'][1] > del_span[0]:
                 # increment number of subs for this syllable
                 subs[i-1]['num_subs'] += 1
 
                 # update the end pos of the affected del_span
                 subs[i-1]['del_span'] = (
-                        subs[i-1]['del_span'][0], end)
+                        subs[i-1]['del_span'][0], del_span[1])
 
                 # update the end pos of the associated linear_span
                 subs[i-1]['linear_span'] = (
-                        subs[i-1]['linear_span'][0], span[1])
+                        subs[i-1]['linear_span'][0], lin_span[1])
             else:
                 subs[i] = dict()
                 sub = subs[i]
                 sub['num_subs'] = 1
-                sub['del_span'] = (start, end)
-                sub['linear_span'] = span
+                sub['del_span'] = del_span
+                sub['linear_span'] = lin_span
                 i += 1
 
         # Keep track of extra letters in the subbed syllables which
@@ -394,40 +436,9 @@ class KRE_Pattern:
         return self._findall(ls, *args, empty_es=empty_es)
 
     def _findall(self, string_mapping, *args, empty_es=True):
-        ls = string_mapping
-        string = ls.original
-        pos_args, _ = self._process_pos_args(ls, *args)
-
-        match_ = self.Pattern.findall(ls.linear, *pos_args)
-
-        # For all patterns found, find their position in the original text
-        # and return the syllable(s) they are part of
-        if match_:
-            pos = pos_args[0]
-            match_list = []
-            for item in match_:
-                sub_match = self.Pattern.search(ls.linear, pos)
-
-                source_string_span = _get_regs(sub_match, ls)[0]
-                match_list.append(
-                        string[slice(*source_string_span)]
-                        )
-
-                # Update start pos for next iteration.
-                pos = sub_match.span()[1]
-
-                # Was the match an empty string?
-                if sub_match.span()[0] == sub_match.span()[1]:
-                    # Increment pos manually
-                    pos += 1
-                    # Ensure syllable-internal empty strings matches
-                    # remain empty, if wanted
-                    if empty_es == True:
-                        match_list[-1] = ''
-
-            return match_list
-        else:
-            return None
+        matches = self._finditer(string_mapping, *args,
+                empty_es=empty_es)
+        return [match_.group() for match_ in matches] or None
 
     def finditer(self, string, *args, empty_es=True):
         ls = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
@@ -440,22 +451,12 @@ class KRE_Pattern:
         match_ = self.Pattern.finditer(ls.linear, *pos_args)
 
         # For all re.Match objects in match_
-        if match_:
-            pos = pos_args[0]
-            match_list = []
-            for item in match_:
-                sub_match = self._search(ls, pos)
-                match_list.append(KRE_Match(self, ls, 
-                    sub_match, *args, empty_es=empty_es))
-                pos = sub_match.span()[1]
-
-                # Was the match an empty string?
-                if sub_match.span()[0] == sub_match.span()[1]:
-                    # Increment pos manually
-                    pos += 1
-            return iter(match_list)
-        else:
-            return None
+        match_list = []
+        for item in match_:
+            cur_match = item
+            match_list.append(KRE_Match(self, ls, 
+                cur_match, *args, empty_es=empty_es))
+        return iter(match_list)
 
     def _process_pos_args(self, _linear, *args):
         """
@@ -576,9 +577,11 @@ class Mapping:
         - use abbreviations exclusively within functions
         - use full name as class attribute
     """
-    def __init__(self, string, boundaries=False, delimiter=';'):
-        self.boundaries = boundaries
-        self.delimiter = delimiter
+    def __init__(self, string, **kwargs):
+        self.boundaries = kwargs.get("boundaries",
+        _settings["boundaries"])
+        self.delimiter = kwargs.get("delimiter",
+        _settings["delimiter"])
 
         # levels of representation and mappings
         self.original = string
