@@ -31,12 +31,27 @@ def test_match():
     assert res == None
 
 def test_fullmatch():
-    pass
+    assert kre.fullmatch('ㅏ','ㅏ').span() == (0,1)
+    assert kre.fullmatch('ㅏ','ㅏㅏ') == None
+    assert kre.fullmatch('ㅏ','가') == None
 
 def test_sub():
     res = kre.sub('ㄴ다', 'ㄹ 거예요', arirang, syllabify="extended")
     assert res == "아리랑 아리랑 아라리요. 아리랑 고개로 넘어갈 거예요. 나를 버리고 가시는 님은 십리도 못가서 발병 날 거예요."
 
+def test_sub_extended():
+    # Ensure that extended will syllabify substituted portion with
+    # preceding and following characters
+    res = kre.sub('ㅡㄴ', 'ㅏㅂ', '하느늘ㅏ근', syllabify="extended")
+    assert res == '하나브라갑'
+    res = kre.sub('ㅡㄴ', 'ㅂ', '하느늘ㅏ근', syllabify="extended")
+    assert res == '한브락ㅂ'
+    # Ensure that it does not extended to two characters before
+    res = kre.sub('ㅡㄴ', 'ㅂ', 'ㄱㅏ근ㅏ', syllabify="extended")
+    assert res == 'ㄱㅏㄱ바'
+    # Ensure that it does not extended to two characters after
+    res = kre.sub('ㄱ', 'ㅂ', 'ㄱㅏㅁ', syllabify="extended")
+    assert res == '바ㅁ'
 
 def test_subn():
     assert kre.subn('a', 'b', 'c') == ('c', 0)
