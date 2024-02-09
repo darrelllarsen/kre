@@ -3,6 +3,13 @@ Subcharacter-level regular expressions with Korean text.
 
 kre is a wrapper for `re` from the Python Standard Library which allows users to apply the full functionality of `re` at the subcharacter level for Korean text.
 
+## Installation
+
+kre releases are available on PyPI.
+```
+pip install kre
+```
+
 ## Documentation
 
 Most functionality is documented in the [re documentation](https://docs.python.org/3/library/re.html).
