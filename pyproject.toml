@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kre"
-version = "0.9.8"
+version = "0.9.9"
 description = "Subcharacter-level regular expression functionality for Korean"
 authors = ["Darrell Larsen <pythonkre@gmail.com>"]
 license = "GPL-3.0-only"
