@@ -65,6 +65,23 @@ _settings = {"boundaries": False,
         "empty_es": True,
         }
 
+def set_defaults(dictionary):
+    OPTIONS = {"boundaries": [True, False],
+            "empty_es": [True, False],
+            "syllabify": ["none", "minimal", "extended", "full"]
+            }
+    for key, val in dictionary.items():
+        if key not in _settings.keys():
+            raise ValueError(f"{key} is not an available setting")
+        elif key in OPTIONS.keys():
+            if val in OPTIONS[key]:
+                _settings[key] = val
+            else:
+                raise ValueError(
+                        f"{val} is not a valid option for '{key}'")
+        else:
+            _settings[key] = val
+
 
 ### Public interface
 
@@ -134,14 +151,14 @@ class KRE_Pattern:
     def __init__(self, pattern, flags, **pattern_kwargs):
         self.pattern = pattern #original Korean, unlinearized
         self.flags = flags
-        self.mapping = Mapping(pattern)
-        self.linear = self.mapping.linear #linear input to compile
-        self.Pattern = re.compile(self.linear, flags) # re.Pattern obj
-        self.groups = self.Pattern.groups
         self.boundaries = pattern_kwargs.pop("boundaries",
                 _settings["boundaries"])
         self.delimiter = pattern_kwargs.pop("delimiter",
                 _settings["delimiter"])
+        self.mapping = Mapping(pattern, boundaries=False)
+        self.linear = self.mapping.linear #linear input to compile
+        self.Pattern = re.compile(self.linear, flags) # re.Pattern obj
+        self.groups = self.Pattern.groups
 
         # Extract from compiled non-linearized string so access format
         # can match input format
