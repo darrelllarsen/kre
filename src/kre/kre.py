@@ -63,12 +63,14 @@ _settings = {"boundaries": False,
         "delimiter": ";",
         "syllabify": "minimal",
         "empty_es": True,
+        "es_idx": "accurate",
         }
 
 def set_defaults(dictionary):
     OPTIONS = {"boundaries": [True, False],
             "empty_es": [True, False],
-            "syllabify": ["none", "minimal", "extended", "full"]
+            "syllabify": ["none", "minimal", "extended", "full"],
+            "es_idx": ["accurate", "start", "end"],
             }
     for key, val in dictionary.items():
         if key not in _settings.keys():
@@ -781,50 +783,6 @@ class Mapping:
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
 
-def _get_regs(Match, linear_obj):
-    # TODO: update doc
-    """
-    Map the index positions of the match to their corresponding 
-    positions in the source text
-
-    Args:
-        Match: re.Match object carried out over the linearized text
-        linear_obj: Mapping object
-
-    Returns:
-        list: a list containing the corresponding span positions in the
-            original (non-linearized) text
-    """
-    regs = []
-    l = linear_obj
-    for span in Match.regs:
-        # (-1, -1) used for groups that did not contibute to the match
-        if span == (-1, -1):
-            regs.append(span)
-            continue
-
-        # Did it match a string-initial empty string?
-        elif span == (0, 0):
-            regs.append(span)
-            continue
-
-        # Did it match a string-final empty string?
-        elif span == (len(Match.string), len(Match.string)):
-            idx = len(l.original)
-            regs.append((idx, idx))
-            continue
-
-        else:
-            span_start = l.lin2orig_span[span[0]][0]
-
-            # re.MATCH object's span end is index *after* final character,
-            # so, we need to subtract one to get the index of the character 
-            # to map back to the original, then add one to the result to 
-            # get the index after this character
-            span_end = l.lin2orig_span[span[1]-1][1]
-            regs.append((span_start, span_end))
-    
-    return tuple(regs)
 
 class KRE_Match:
     """
@@ -846,12 +804,13 @@ class KRE_Match:
         # contains same attributes as above but for linearized string
         self.Match = Match_obj
         self.empty_es = kwargs.pop("empty_es", _settings["empty_es"])
+        self.es_idx = kwargs.pop("es_idx", _settings["es_idx"])
 
         self.string = self.string_mapping.original
         self.re = pattern_obj # kre.KRE_Pattern object (kre.compile)
         self._re = self.re.Pattern # re.Pattern object (re.compile)
         self.pos, self.endpos = self._get_pos_args(*args)
-        self.regs = _get_regs(Match_obj, self.string_mapping) #tuple
+        self.regs = self._get_regs() #tuple
         self.lastindex = Match_obj.lastindex
         self.lastgroup = self._get_lastgroup()
    
@@ -994,3 +953,55 @@ class KRE_Match:
         # Return the name of the last named matched capturing group
         else:
             return inv_map[self.lastindex]
+
+    def _get_regs(self):
+        # TODO: update doc
+        """
+        Map the index positions of the match to their corresponding 
+        positions in the source text
+
+        Args:
+            Match: re.Match object carried out over the linearized text
+            linear_obj: Mapping object
+
+        Returns:
+            list: a list containing the corresponding span positions in the
+                original (non-linearized) text
+        """
+        regs = []
+        sm = self.string_mapping
+        for span in self.Match.regs:
+            # (-1, -1) used for groups that did not contibute to the match
+            if span == (-1, -1):
+                regs.append(span)
+                continue
+
+            # Did it match a string-initial empty string?
+            elif span == (0, 0):
+                regs.append(span)
+                continue
+
+            # Did it match a string-final empty string?
+            elif span == (len(self.Match.string), len(self.Match.string)):
+                idx = len(sm.original)
+                regs.append((idx, idx))
+                continue
+
+            else:
+                span_start = sm.lin2orig_span[span[0]][0]
+
+                # re.MATCH object's span end is index *after* final character,
+                # so, we need to subtract one to get the index of the character 
+                # to map back to the original, then add one to the result to 
+                # get the index after this character
+                span_end = sm.lin2orig_span[span[1]-1][1]
+
+                # Adjust idx in accordance with user's preference
+                if span[0] == span[1] and self.es_idx != "accurate":
+                    if self.es_idx == 'start':
+                        span_end = span_start
+                    elif self.es_idx == 'end':
+                        span_start = span_end
+                regs.append((span_start, span_end))
+        
+        return tuple(regs)
