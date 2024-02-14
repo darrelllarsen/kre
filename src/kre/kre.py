@@ -85,20 +85,19 @@ def set_defaults(dictionary):
 
 ### Public interface
 
-def search(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).search(string, 
-            empty_es=empty_es)
+def search(pattern, string, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).search(string, 
+            **kwargs)
 
-def match(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).match(string, 
-            empty_es=empty_es)
+def match(pattern, string, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).match(string, 
+            **kwargs)
 
-def fullmatch(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).fullmatch(string, 
-            empty_es=empty_es)
+def fullmatch(pattern, string, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).fullmatch(string, 
+            **kwargs)
 
-def sub(pattern, repl, string, count=0, flags=0, empty_es=True, 
-        syllabify='minimal', **pattern_kwargs):
+def sub(pattern, repl, string, count=0, flags=0, **kwargs):
     """
     Returns unsubstituted characters in the same format as input (i.e.,
     as syllable characters or individual letters) except as affected by 
@@ -111,31 +110,28 @@ def sub(pattern, repl, string, count=0, flags=0, empty_es=True,
         'extended' (will attempt to combine affected characters with
             preceding/following characters to create syllables)
     """
-    return compile(pattern, flags, **pattern_kwargs).sub(repl, string, 
-            count=count, empty_es=empty_es, syllabify=syllabify)
+    return compile(pattern, flags, **kwargs).sub(repl, string, 
+            count=count, **kwargs)
 
-def subn(pattern, repl, string, count=0, flags=0, empty_es=True, 
-        syllabify='minimal', **pattern_kwargs):
+def subn(pattern, repl, string, count=0, flags=0, **kwargs):
     """
     Similar to sub(), but returns tuple with count as second element.
     """
-    return compile(pattern, flags, **pattern_kwargs).subn(repl, string, count=count, 
-            empty_es=empty_es, syllabify=syllabify)
+    return compile(pattern, flags, **kwargs).subn(repl, string, count=count, 
+            **kwargs)
 
-def split(pattern, string, maxsplit=0, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).split(string, maxsplit=maxsplit, 
-            empty_es=empty_es,)
+def split(pattern, string, maxsplit=0, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).split(string, maxsplit=maxsplit, 
+            **kwargs)
 
-def findall(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).findall(string, 
-            empty_es=empty_es,)
+def findall(pattern, string, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).findall(string, **kwargs)
 
-def finditer(pattern, string, flags=0, empty_es=True, **pattern_kwargs):
-    return compile(pattern, flags, **pattern_kwargs).finditer(string, 
-            empty_es=empty_es,)
+def finditer(pattern, string, flags=0, **kwargs):
+    return compile(pattern, flags, **kwargs).finditer(string,**kwargs)
 
-def compile(pattern, flags=0, **pattern_kwargs):
-    return KRE_Pattern(pattern, flags, **pattern_kwargs)
+def compile(pattern, flags=0, **kwargs):
+    return KRE_Pattern(pattern, flags, **kwargs)
 
 def purge():
     # note that this will purge all regular expression caches, 
@@ -148,12 +144,12 @@ def escape(pattern):
 ### Private interface
 
 class KRE_Pattern:
-    def __init__(self, pattern, flags, **pattern_kwargs):
+    def __init__(self, pattern, flags, **kwargs):
         self.pattern = pattern #original Korean, unlinearized
         self.flags = flags
-        self.boundaries = pattern_kwargs.pop("boundaries",
+        self.boundaries = kwargs.pop("boundaries",
                 _settings["boundaries"])
-        self.delimiter = pattern_kwargs.pop("delimiter",
+        self.delimiter = kwargs.pop("delimiter",
                 _settings["delimiter"])
         self.mapping = Mapping(pattern, boundaries=False)
         self.linear = self.mapping.linear #linear input to compile
@@ -171,20 +167,20 @@ class KRE_Pattern:
     def __str__(self):
         return "kre.compile(%s)" % repr(self.pattern)
 
-    def search(self, string, *args, empty_es=True):
+    def search(self, string, *args, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        return self._search(sm, *args, empty_es=empty_es)
+        return self._search(sm, *args, **kwargs)
 
-    def _search(self, string_mapping, *args, empty_es=True):
+    def _search(self, string_mapping, *args, **kwargs):
         sm = string_mapping
         pos_args, iter_span = self._process_pos_args(sm, *args)
         match_ = self.Pattern.search(sm.linear, *pos_args)
         if match_:
-            return KRE_Match(self, sm, match_, *args, empty_es=empty_es)
+            return KRE_Match(self, sm, match_, *args, **kwargs)
         else:
             return match_
 
-    def match(self, string, *args, empty_es=True):
+    def match(self, string, *args, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
         pos_args, iter_span = self._process_pos_args(sm, *args)
        
@@ -192,11 +188,11 @@ class KRE_Pattern:
             match_ = self.Pattern.match(sm.linear, *span)
             if match_:
                 return KRE_Match(self, sm, match_, *args, 
-                        empty_es=empty_es)
+                        **kwargs)
         else:
             return match_
 
-    def fullmatch(self, string, *args, empty_es=True):
+    def fullmatch(self, string, *args, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
         pos_args, iter_span = self._process_pos_args(sm, *args)
 
@@ -204,12 +200,11 @@ class KRE_Pattern:
             match_ = self.Pattern.fullmatch(sm.linear, *span)
             if match_:
                 return KRE_Match(self, sm, match_, *args, 
-                        empty_es=empty_es)
+                        **kwargs)
         else:
             return match_
 
-    def sub(self, repl, string, count=0, empty_es=True, 
-            syllabify='minimal'):
+    def sub(self, repl, string, count=0, **kwargs):
         """
         Returns unsubstituted characters in the same format as input (i.e.,
         as syllable characters or individual letters) except as affected by 
@@ -227,14 +222,13 @@ class KRE_Pattern:
         # Linearize string
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
 
-        return self._sub(repl, sm, count=count, empty_es=empty_es,
-                syllabify=syllabify)
+        return self._sub(repl, sm, count=count, **kwargs)
 
-    def _sub(self, repl, string_mapping, count=0, empty_es=True, 
-            syllabify='minimal'):
+    def _sub(self, repl, string_mapping, count=0, **kwargs):
         sm = string_mapping
         subs = dict()
         matches = self._finditer(sm)
+        syllabify = kwargs.pop("syllabify", _settings["syllabify"])
 
         def compute_spans():
             i = 0 # number non-overlapping sub spans (no increment for shared syllable)
@@ -394,11 +388,11 @@ class KRE_Pattern:
 
         return output
 
-    def subn(self, repl, string, count=0, empty_es=True, syllabify='minimal'):
+    def subn(self, repl, string, count=0, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
         
         # Limit substitutions to max of count if != 0
-        res = self._findall(sm, empty_es=empty_es)
+        res = self._findall(sm, **kwargs)
         if res:
             sub_count = len(res)
         else:
@@ -406,26 +400,25 @@ class KRE_Pattern:
         if 0 < count < sub_count:
             sub_count = count
 
-        return (self._sub(repl, sm, count=count, empty_es=empty_es, 
-            syllabify=syllabify), sub_count)
+        return (self._sub(repl, sm, count=count, **kwargs), sub_count)
 
-    def split(self, string, maxsplit=0, empty_es=True):
+    def split(self, string, maxsplit=0, **kwargs):
         raise NotImplementedError 
 
-    def findall(self, string, *args, empty_es=True):
+    def findall(self, string, *args, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        return self._findall(sm, *args, empty_es=empty_es)
+        return self._findall(sm, *args, **kwargs)
 
-    def _findall(self, string_mapping, *args, empty_es=True):
+    def _findall(self, string_mapping, *args, **kwargs):
         matches = self._finditer(string_mapping, *args,
-                empty_es=empty_es)
+                **kwargs)
         return [match_.group() for match_ in matches] or None
 
-    def finditer(self, string, *args, empty_es=True):
+    def finditer(self, string, *args, **kwargs):
         sm = Mapping(string, boundaries=self.boundaries, delimiter=self.delimiter)
-        return self._finditer(sm, *args, empty_es=empty_es)
+        return self._finditer(sm, *args, **kwargs)
 
-    def _finditer(self, string_mapping, *args, empty_es=True):
+    def _finditer(self, string_mapping, *args, **kwargs):
         sm = string_mapping
         pos_args, _ = self._process_pos_args(sm, *args)
 
@@ -436,7 +429,7 @@ class KRE_Pattern:
         for item in match_:
             cur_match = item
             match_list.append(KRE_Match(self, sm, 
-                cur_match, *args, empty_es=empty_es))
+                cur_match, *args, **kwargs))
         return iter(match_list)
 
     def _process_pos_args(self, _linear, *args):
@@ -846,13 +839,13 @@ class KRE_Match:
     both the original and modified strings created by kre.
     """
     def __init__(self, pattern_obj, string_mapping, Match_obj, *args, 
-            empty_es=True):
+            **kwargs):
 
         self.string_mapping = string_mapping
         # underlying re.Match object 
         # contains same attributes as above but for linearized string
         self.Match = Match_obj
-        self.empty_es = empty_es
+        self.empty_es = kwargs.pop("empty_es", _settings["empty_es"])
 
         self.string = self.string_mapping.original
         self.re = pattern_obj # kre.KRE_Pattern object (kre.compile)
