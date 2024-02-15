@@ -562,9 +562,9 @@ class Mapping:
         self.orig2lin_span = self._get_forward_span('orig', 'lin')
 
         # backward spans
-        self.del2orig_span = self._get_del2orig_span()
-        self.lin2orig_span = self._get_lin2orig_span()
-        self.lin2del_span = self._get_lin2del_span()
+        self.del2orig_span = self._get_backward_span('del', 'orig')
+        self.lin2orig_span = self._get_backward_span('lin', 'orig')
+        self.lin2del_span = self._get_backward_span('lin', 'del')
 
     def validate_delimiter(self) -> None:
         """
@@ -675,11 +675,17 @@ class Mapping:
 
         return tuple(span_map)
 
-    def _get_del2orig_span(self): # returns tuple(span_map)
+    def _get_backward_span(self, from_, to):
+        MAP_OPTIONS = {'lin2del': self.lin2del,
+                'lin2orig': self.lin2orig,
+                'del2orig': self.del2orig,
+                }
+        selection = from_ + '2' + to
+        map_ = MAP_OPTIONS[selection]
         span_map = []
         end_idx = 0
 
-        for idx in self.del2orig:
+        for idx in map_:
             if idx != None:
                 end_idx = idx + 1
                 span_map.append((idx, end_idx))
@@ -687,40 +693,6 @@ class Mapping:
                 span_map.append((end_idx, end_idx))
 
         return tuple(span_map)
-
-    def _get_lin2orig_span(self):
-        span_map = []
-        for n in range(len(self.lin2orig)):
-            span_map.append(self.del2orig_span[self.lin2del[n]])
-        
-        return tuple(span_map)
-
-    def _get_lin2orig_span_old(self): # DELETE AFTER TEST
-        span_map = []
-        end_idx = 0
-
-        for idx in self.lin2orig:
-            if idx != None:
-                end_idx = idx+1
-                span_map.append((idx, end_idx))
-            else:
-                span_map.append((end_idx, end_idx))
-
-        return tuple(span_map)
-
-    def _get_lin2del_span(self):
-        span_map = []
-        end_idx = 0
-
-        for idx in self.lin2del:
-            if idx != None:
-                end_idx = idx+1
-                span_map.append((idx, end_idx))
-            else:
-                span_map.append((end_idx, end_idx))
-
-        return tuple(span_map)
-
 
     def _get_syl_span(self, idx):
         return self.del2lin_span[self.lin2del[idx]]
