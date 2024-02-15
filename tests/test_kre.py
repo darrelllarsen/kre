@@ -96,20 +96,25 @@ def test_empty_strings():
     res = kre.search('^a?', '한국어', boundaries=True)
     assert res.span() == (0, 0)
     assert res._del_span == (0, 0)
-    assert res.Match.span == (0, 0)
+    assert res.Match.span() == (0, 0)
     res = kre.search('^a?', '한국어', boundaries=False)
     assert res.span() == (0, 0)
     assert res._del_span == (0, 0)
-    assert res.Match.span == (0, 0)
+    assert res.Match.span() == (0, 0)
     # string final empty string match
     res = kre.search('a?$', '한국어', boundaries=True)
     assert res.span() == (3, 3)
     assert res._del_span == (7, 7)
-    assert res.Match.span == (12, 12)
+    assert res.Match.span() == (12, 12)
     res = kre.search('a?$', '한국어', boundaries=False)
     assert res.span() == (3, 3)
     assert res._del_span == (3, 3)
-    assert res.Match.span == (8, 8)
+    assert res.Match.span() == (8, 8)
+    # empty string match in empty string
+    res = kre.search('a?', '')
+    assert res.span() == (0, 0)
+    assert res._del_span == (0, 0)
+    assert res.Match.span() == (0, 0)
 
 
 def test_split():
