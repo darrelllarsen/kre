@@ -240,20 +240,9 @@ class KRE_Pattern:
                     break
 
                 lin_span = match_.Match.span()
-                del_span = get_corresponding_del_span(lin_span)
+                del_span = match_._del_span
 
                 i = add_spans(subs, i, lin_span, del_span)
-
-        def get_corresponding_del_span(lin_span):
-            # Case of empty string match at end of string
-            if lin_span[0] == len(sm.linear):
-                del_span = tuple([sm.lin2del[lin_span[0]-1]+1]*2)
-
-            # Normal case
-            else:
-                del_span = (sm.lin2del[lin_span[0]],
-                    sm.lin2del[lin_span[1]-1]+1)
-            return del_span
 
         def add_spans(subs, i, lin_span, del_span):
             # CASE: multiple subs from same syllable
@@ -782,8 +771,6 @@ class Mapping:
                     '\t', self.delimited[slice(*self.lin2del_span[n])],
                     '\t\t', self.lin2orig[n], '\t\t', span_,'\t', self.original[slice(*span_)])
 
-
-
 class KRE_Match:
     """
     The KRE_Match class is intended to mimic the _sre.SRE_Match object,
@@ -815,6 +802,7 @@ class KRE_Match:
         self.lastgroup = self._get_lastgroup()
    
         self.linear = string_mapping.linear
+        self._del_span = self._get_del_span()
 
     def __repr__(self):
         return "<kre.KRE_Match object; span=%r, match=%r>" % (
@@ -1005,3 +993,22 @@ class KRE_Match:
                 regs.append((span_start, span_end))
         
         return tuple(regs)
+
+    def _get_del_span(self):
+        """
+        Returns the span corresponding to the position in the
+        delimited string, which is relevant for substitutions and
+        splits.                                                                        
+        """
+        sm = self.string_mapping
+        lin_span = self.Match.span()
+
+        # Case of empty string match at end of string
+        if lin_span[0] == len(sm.linear):
+            del_span = tuple([sm.lin2del[lin_span[0]-1]+1]*2)
+
+        # Normal case
+        else:
+            del_span = (sm.lin2del[lin_span[0]],
+                sm.lin2del[lin_span[1]-1]+1)
+        return del_span
