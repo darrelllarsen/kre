@@ -92,6 +92,25 @@ def test_subn():
 def test_empty_strings():
     res = kre.sub('a?', 'b', nonsense)
     assert res == ('bㅎbㅏbㄹbㄱbㅇbㅡbㅎbㅏbㄴbㅡbㄴbㅡbㄹbㄱbㅡbㄴbㅡb')
+    # string initial empty string match
+    res = kre.search('^a?', '한국어', boundaries=True)
+    assert res.span() == (0, 0)
+    assert res._del_span == (0, 0)
+    assert res.Match.span == (0, 0)
+    res = kre.search('^a?', '한국어', boundaries=False)
+    assert res.span() == (0, 0)
+    assert res._del_span == (0, 0)
+    assert res.Match.span == (0, 0)
+    # string final empty string match
+    res = kre.search('a?$', '한국어', boundaries=True)
+    assert res.span() == (3, 3)
+    assert res._del_span == (7, 7)
+    assert res.Match.span == (12, 12)
+    res = kre.search('a?$', '한국어', boundaries=False)
+    assert res.span() == (3, 3)
+    assert res._del_span == (3, 3)
+    assert res.Match.span == (8, 8)
+
 
 def test_split():
     pass
@@ -123,7 +142,6 @@ def test_findall():
 
     res = kre.findall('ㄹ%', arirang, boundaries=True, delimiter='%')
     assert res == ['를', '발']
-
 
 def test_finditer():
     pass
@@ -343,7 +361,6 @@ def test_kre_pattern_findall():
 
 def test_kre_pattern_finditer():
     pass
-
 
 ### KRE_Match object attributes and functions
 
