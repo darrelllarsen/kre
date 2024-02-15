@@ -541,6 +541,8 @@ class Mapping:
     - abbreviations: {delimiter: del; original: orig; linear: lin}
         - use abbreviations exclusively within functions
         - use full name as class attribute
+    - 'forward' means from original -> delimited -> linear
+    - 'backward' means from linear -> delimited -> original
     """
     def __init__(self, string, **kwargs):
         self.boundaries = kwargs.get("boundaries",
@@ -553,12 +555,16 @@ class Mapping:
         self.delimited, self.del2orig = self._delimit()
         self.linear, self.lin2del = self._linearize()
         self.lin2orig = tuple(self.del2orig[n] for n in self.lin2del)
-        self.del2lin_span = self._get_del2lin_span()
+
+        # forward spans
+        self.del2lin_span = self._get_forward_span('del', 'lin')
+        self.orig2del_span = self._get_forward_span('orig', 'del')
+        self.orig2lin_span = self._get_forward_span('orig', 'lin')
+
+        # backward spans
         self.del2orig_span = self._get_del2orig_span()
         self.lin2orig_span = self._get_lin2orig_span()
         self.lin2del_span = self._get_lin2del_span()
-        self.orig2del_span = self._get_orig2del_span()
-        self.orig2lin_span = self._get_orig2lin_span()
 
     def validate_delimiter(self) -> None:
         """
@@ -647,25 +653,25 @@ class Mapping:
             lin_idx += 1
         return (lin_str, tuple(lin2del_))
 
-    def _get_del2lin_span(self): # returns tuple(span_map)
+    def _get_forward_span(self, from_, to):
+        MAP_OPTIONS = {'lin2del': self.lin2del,
+                'lin2orig': self.lin2orig,
+                'del2orig': self.del2orig,
+                }
+        SOURCE_OPTIONS = {'del': self.delimited,
+                'orig': self.original,
+                }
+
+        selection = to + '2' + from_
+        map_ = MAP_OPTIONS[selection]
+        _pam = map_[::-1] # reverse map_
         span_map = []
-        start = 0
-        mapped_idx = 0
+        source_length = len(SOURCE_OPTIONS[from_])
 
-        for n in range(len(self.lin2del)+1):
-            # Case: end of string
-            if n == len(self.lin2del):
-                span_map.append((start, n))
-
-            # Case: from same syllable as previous
-            elif self.lin2del[n] == mapped_idx:
-                pass
-
-            # Case: from start of syllable
-            else:
-                span_map.append((start, n))
-                start = n
-                mapped_idx += 1
+        for n in range(source_length):
+            start = map_.index(n)
+            end = len(map_) - _pam.index(n)
+            span_map.append((start, end))
 
         return tuple(span_map)
 
@@ -715,30 +721,6 @@ class Mapping:
 
         return tuple(span_map)
 
-    # Forward maps
-    def _get_orig2del_span(self): #Revise - no need for span in this direction
-        span_map = []
-        map_ = self.del2orig
-        _pam = map_[::-1]
-
-        for n in range(len(self.original)):
-            start = map_.index(n)
-            end = len(map_) - _pam.index(n)
-            span_map.append((start, end))
-
-        return tuple(span_map)
-
-    def _get_orig2lin_span(self):
-        span_map = []
-        map_ = self.lin2orig
-        _pam = map_[::-1]
-
-        for n in range(len(self.original)):
-            start = map_.index(n)
-            end = len(map_) - _pam.index(n)
-            span_map.append((start, end))
-
-        return tuple(span_map)
 
     def _get_syl_span(self, idx):
         return self.del2lin_span[self.lin2del[idx]]
