@@ -276,7 +276,10 @@ class KRE_Pattern:
                 # Normal case
                 else:
                     syl_start = sm._get_syl_start(sub_start)
-                syl_end = sm._get_syl_end(sub_end-1)
+                if sub_end == 0:
+                    syl_end = 0
+                else:
+                    syl_end = sm._get_syl_end(sub_end-1)
 
                 pre_sub_letters = sm.linear[syl_start:sub_start]
                 post_sub_letters = sm.linear[sub_end:syl_end]
@@ -695,6 +698,13 @@ class Mapping:
         return tuple(span_map)
 
     def _get_syl_span(self, idx):
+        """
+        Arguments:
+            idx (int): index corresponding to a linear string position
+        Returns:
+            tuple: linear string span of characters originating from 
+            same character as the character at index idx
+        """
         return self.del2lin_span[self.lin2del[idx]]
 
     def _get_syl_start(self, idx):
@@ -957,10 +967,12 @@ class KRE_Match:
         sm = self.string_mapping
         lin_span = self.Match.span()
 
+        # Case of empty string match at beginning of string
+        if lin_span[0] == lin_span[1] == 0:
+            del_span = (0, 0)
         # Case of empty string match at end of string
-        if lin_span[0] == len(sm.linear):
+        elif lin_span[0] == len(sm.linear):
             del_span = tuple([sm.lin2del[lin_span[0]-1]+1]*2)
-
         # Normal case
         else:
             del_span = (sm.lin2del[lin_span[0]],
